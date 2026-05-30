@@ -1,45 +1,41 @@
 import type { UserProfile as UserProfileType } from "@/types/chat";
-import { cn } from "@/lib/cn";
+import styles from "@/components/chat/chat-ui.module.css";
 
 interface UserProfileProps {
   user: UserProfileType;
   className?: string;
 }
 
-/**
- * Bottom sidebar profile area — shows avatar initials and full name.
- */
-export function UserProfile({ user, className }: UserProfileProps) {
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-3 px-4 py-4",
-        "border-t border-neutral-200/70",
-        className
-      )}
-      role="complementary"
-      aria-label="Signed in user"
-    >
-      {/* Avatar */}
-      <div
-        className={cn(
-          "w-8 h-8 rounded-full flex-shrink-0",
-          "flex items-center justify-center",
-          "text-[12px] font-semibold tracking-wide select-none"
-        )}
-        style={{
-          backgroundColor: "var(--color-avatar-bg)",
-          color: "var(--color-avatar-text)",
-        }}
-        aria-hidden="true"
-      >
-        {user.initials}
-      </div>
+const gradients = [
+  ["#4f46e5", "#9333ea"],
+  ["#0f766e", "#06b6d4"],
+  ["#ea580c", "#f59e0b"],
+  ["#db2777", "#e11d48"],
+  ["#059669", "#16a34a"],
+  ["#2563eb", "#0ea5e9"],
+  ["#7c3aed", "#d946ef"],
+  ["#65a30d", "#eab308"],
+];
 
-      {/* Name */}
-      <span className="text-[13.5px] font-medium text-neutral-700 truncate leading-none">
-        {user.name}
-      </span>
+function hashName(name: string) {
+  return [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+}
+
+export function UserProfile({ user, className }: UserProfileProps) {
+  const pair = gradients[hashName(user.name) % gradients.length];
+
+  return (
+    <div className={`${styles.userProfileWrap} ${className ?? ""}`} role="complementary" aria-label="Signed in user">
+      <button type="button" className={styles.userProfile} aria-label={`User profile: ${user.name}`}>
+        <span
+          className={styles.avatar}
+          style={{ background: `linear-gradient(135deg, ${pair[0]}, ${pair[1]})` }}
+          aria-hidden="true"
+        >
+          {user.initials.slice(0, 2).toUpperCase()}
+        </span>
+        <span className={styles.userName}>{user.name}</span>
+      </button>
     </div>
   );
 }

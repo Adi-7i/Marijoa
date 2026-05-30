@@ -1,0 +1,22 @@
+:root {
+  --color-bg: #ffffff;
+  --color-sidebar-bg: #f7f7f8;
+  --color-sidebar-hover: #efefef;
+  --color-border: #e5e5e5;
+  --color-text-primary: #0d0d0d;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9b9b9b;
+  --color-accent: #1a1a1a;
+  --color-user-bubble: #f0f0f0;
+  --color-ai-bubble: transparent;
+  --color-input-bg: #f4f4f5;
+  --color-input-border: #e4e4e7;
+  --color-avatar-bg: #e8e8e8;
+  --radius-bubble: 18px;
+  --radius-input: 28px;
+  --radius-sidebar-item: 8px;
+  --font-primary: var(--font-inter), "Inter", "DM Sans", ui-sans-serif, system-ui,
+    sans-serif;
+  --sidebar-width: 240px;
+  --input-height: 52px;
+}

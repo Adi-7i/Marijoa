@@ -3,6 +3,7 @@
 export interface ChatHistoryItem {
   id: string;
   title: string;
+  updatedAt?: number;
 }
 
 export interface UserProfile {
@@ -17,4 +18,6 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   timestamp: number;
+  thoughts?: string;
+  isStreaming?: boolean;
 }

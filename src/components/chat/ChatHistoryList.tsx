@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChatHistoryItem } from "@/types/chat";
-import { cn } from "@/lib/cn";
+import styles from "@/components/chat/chat-ui.module.css";
 
 interface ChatHistoryListProps {
   items: ChatHistoryItem[];
@@ -9,18 +9,21 @@ interface ChatHistoryListProps {
   onSelect?: (id: string) => void;
 }
 
-/**
- * Renders the list of past chat sessions in the sidebar.
- * Text-only, compact rows with ellipsis truncation.
- */
-export function ChatHistoryList({
-  items,
-  activeId,
-  onSelect,
-}: ChatHistoryListProps) {
+function relativeTime(timestamp?: number) {
+  if (!timestamp) return "Mon";
+  const diff = Date.now() - timestamp;
+  const hour = 60 * 60 * 1000;
+  const day = 24 * hour;
+  if (diff < hour) return "Now";
+  if (diff < day) return `${Math.max(1, Math.round(diff / hour))}h ago`;
+  if (diff < day * 2) return "Yesterday";
+  return new Intl.DateTimeFormat("en", { weekday: "short" }).format(timestamp);
+}
+
+export function ChatHistoryList({ items, activeId, onSelect }: ChatHistoryListProps) {
   return (
     <nav aria-label="Chat history">
-      <ul className="flex flex-col gap-0.5" role="list">
+      <ul className={styles.chatList} role="list">
         {items.map((item) => (
           <li key={item.id}>
             <button
@@ -28,16 +31,10 @@ export function ChatHistoryList({
               onClick={() => onSelect?.(item.id)}
               title={item.title}
               aria-current={activeId === item.id ? "page" : undefined}
-              className={cn(
-                "w-full text-left px-3 py-2 rounded-lg",
-                "text-[13.5px] leading-snug truncate",
-                "text-neutral-500 transition-colors duration-150",
-                "hover:bg-neutral-200/60 hover:text-neutral-700",
-                "focus-ring",
-                activeId === item.id && "bg-neutral-200/70 text-neutral-800 font-medium"
-              )}
+              className={`${styles.chatItem} ${activeId === item.id ? styles.chatItemActive : ""}`}
             >
-              {item.title}
+              <span className={styles.chatTitle}>{item.title}</span>
+              <span className={styles.chatTime}>{relativeTime(item.updatedAt)}</span>
             </button>
           </li>
         ))}
