@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* ============================================================
+   CUSTOM DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* ── Color palette ───────────────────────────────────── */
+  --color-app-bg: #f5f5f4;
+  --color-sidebar-bg: #f4f4f3;
+  --color-panel-bg: #ffffff;
+  --color-border-subtle: rgba(0, 0, 0, 0.05);
+
+  --color-text-primary: #111111;
+  --color-text-secondary: #525252;
+  --color-text-muted: #a3a3a3;
+
+  --color-avatar-bg: #dde4f0;
+  --color-avatar-text: #3a5a8a;
+
+  /* ── Shadows ─────────────────────────────────────────── */
+  /* Main white panel card */
+  --shadow-panel: 0 18px 60px rgba(15, 23, 42, 0.06),
+    0 4px 16px rgba(15, 23, 42, 0.04);
+
+  /* Composer pill input */
+  --shadow-composer: 0 14px 40px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
+
+  /* New Chat button */
+  --shadow-new-chat: 0 2px 10px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+
+  /* Send button */
+  --shadow-send: 0 2px 8px rgba(15, 23, 42, 0.14),
+    0 1px 3px rgba(15, 23, 42, 0.08);
+
+  /* ── Radii ───────────────────────────────────────────── */
+  --radius-panel: 20px;
+  --radius-full: 9999px;
+}
+
+/* ============================================================
+   GLOBAL RESETS & BASE
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-app-bg);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ============================================================
+   SCROLLBAR — minimal & elegant
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b5b5b5;
+}
+
+/* ============================================================
+   UTILITY: Focus ring — accessible, non-intrusive
+   ============================================================ */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid #94a3b8;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   FONT HELPERS — expose CSS variables from next/font
+   ============================================================ */
+.font-serif-display {
+  font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+.font-sans-ui {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ============================================================
+   CHAT PANEL TRANSITIONS
+   ============================================================ */
+.composer-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
