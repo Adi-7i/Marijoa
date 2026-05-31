@@ -6,7 +6,9 @@ populated when `alembic/env.py` imports this module.
 Keep imports ordered alphabetically by module path as the list grows.
 """
 
-from app.db.base import Base  # noqa: F401 — ensures Base registry is imported
+from app.db.base import Base  # noqa: F401
+from app.modules.auth.model import RefreshToken  # noqa: F401
+from app.modules.organizations.model import Organization, OrganizationMember  # noqa: F401
 from app.modules.users.model import User  # noqa: F401
 
-__all__ = ["Base", "User"]
+__all__ = ["Base", "RefreshToken", "Organization", "OrganizationMember", "User"]

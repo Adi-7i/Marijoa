@@ -39,6 +39,20 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
     )
 
 
+class AuthenticationError(AppException):
+    """Raised for invalid/missing/expired credentials — always 401."""
+
+    def __init__(self, message: str = "Authentication required") -> None:
+        super().__init__(code="UNAUTHORIZED", message=message, status_code=401)
+
+
+class AuthorizationError(AppException):
+    """Raised when an authenticated user lacks permission — always 403."""
+
+    def __init__(self, message: str = "Insufficient permissions") -> None:
+        super().__init__(code="FORBIDDEN", message=message, status_code=403)
+
+
 class ResourceNotFoundError(AppException):
     """Raised when a requested resource cannot be found."""
 
