@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Generator
 from typing import Any
 
 from openai import OpenAI
@@ -106,6 +107,44 @@ class OpenAICompatibleProvider(AIProvider):
             usage=usage,
             latency_ms=latency_ms,
         )
+
+    def stream_response(self, messages: list) -> Generator[str, None, None]:
+        """Stream text deltas from the configured OpenAI-compatible endpoint.
+
+        Args:
+            messages: Ordered conversation turns including any system instruction.
+
+        Yields:
+            str: Non-empty text delta chunks as they arrive from the provider.
+
+        Raises:
+            AIConfigurationError: If authentication fails.
+            AIProviderError: On rate limit, timeout, connection failure, or provider error.
+        """
+        input_dicts: list[dict[str, str]] = [
+            {"role": m.role, "content": m.content} for m in messages
+        ]
+        try:
+            with self._client.responses.stream(
+                model=self._model,
+                input=input_dicts,
+                max_output_tokens=self._max_tokens,
+                temperature=self._temperature,
+                timeout=self._timeout,
+            ) as stream:
+                for text in stream.text_deltas:
+                    if text:
+                        yield text
+        except Exception as exc:
+            name = type(exc).__name__
+            if "AuthenticationError" in name:
+                raise AIConfigurationError("AI authentication failed") from None
+            elif "RateLimitError" in name:
+                raise AIProviderError("AI rate limit exceeded") from None
+            elif "APIConnectionError" in name or "Timeout" in name:
+                raise AIProviderError("AI service connection failed") from None
+            else:
+                raise AIProviderError("AI service returned an error") from None
 
     # ------------------------------------------------------------------
     # Private helpers

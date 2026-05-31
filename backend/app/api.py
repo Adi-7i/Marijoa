@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.modules.ai_gateway.router import router as ai_gateway_router
+from app.modules.artifacts.router import router as artifacts_router
 from app.modules.auth.router import router as auth_router
 from app.modules.chats.router import router as chats_router
 from app.modules.health.router import router as health_router
@@ -20,6 +21,7 @@ def build_api_router(prefix: str) -> APIRouter:
     router.include_router(chats_router)
     router.include_router(messages_router)
     router.include_router(ai_gateway_router)
+    router.include_router(artifacts_router)
     return router
 
 

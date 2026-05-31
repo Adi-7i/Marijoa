@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 
 from app.modules.ai_gateway.schemas import AICompletionResult, ProviderMessage
 
@@ -35,4 +36,19 @@ class AIProvider(ABC):
             AIConfigurationError: If the provider is misconfigured.
             AIProviderError: If the provider is unreachable or returns an error.
             AIResponseError: If the provider response cannot be parsed.
+        """
+
+    @abstractmethod
+    def stream_response(self, messages: list) -> Generator[str, None, None]:
+        """Stream text chunks from the provider for the given messages.
+
+        Args:
+            messages: Ordered list of conversation turns.
+
+        Yields:
+            str: Raw text delta chunks as they arrive from the provider.
+
+        Raises:
+            AIConfigurationError: If the provider is misconfigured.
+            AIProviderError: If the provider is unreachable or returns an error.
         """

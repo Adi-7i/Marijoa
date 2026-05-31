@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.modules.ai_gateway.exceptions import AIConfigurationError, AIProviderError
+from app.modules.ai_gateway.exceptions import (
+    AIConfigurationError,
+    AIProviderError,
+    AIResponseError,
+)
 from app.modules.ai_gateway.prompt_builder import build_provider_messages
 from app.modules.ai_gateway.providers.openai_compatible_provider import OpenAICompatibleProvider
 from app.modules.ai_gateway.schemas import AIRespondResponse
@@ -136,3 +141,115 @@ def ai_respond(
         user_message=MessageRead.model_validate(user_msg),
         assistant_message=MessageRead.model_validate(assistant_msg),
     )
+
+
+def ai_stream(
+    db: Session,
+    *,
+    chat_id: UUID,
+    content: str,
+    user_id: UUID,
+) -> Generator[str, None, None]:
+    """Stream an AI assistant reply for a user message as SSE events.
+
+    Validation (chat access check + user message persistence) runs synchronously
+    before the first yield so FastAPI exception handlers can still return proper
+    HTTP error responses.
+
+    Yields SSE-formatted strings with event types: start, token, done, error.
+
+    Args:
+        db: Active SQLAlchemy database session.
+        chat_id: UUID of the target chat.
+        content: Text of the new user message.
+        user_id: UUID of the authenticated user sending the message.
+
+    Returns:
+        A generator that yields SSE-formatted event strings.
+
+    Raises:
+        ResourceNotFoundError: If the chat does not exist (before first yield).
+        AuthorizationError: If the user lacks access (before first yield).
+        AIConfigurationError: If the AI provider is misconfigured (before first yield).
+    """
+    from app.modules.ai_gateway.streaming import (
+        EVENT_DONE,
+        EVENT_ERROR,
+        EVENT_START,
+        EVENT_TOKEN,
+        format_sse_event,
+    )
+
+    settings = get_settings()
+
+    # Validation runs synchronously before any yield so HTTP errors are raised
+    # before StreamingResponse starts sending bytes.
+    chat = get_chat(db, chat_id, user_id)
+    user_msg = message_service.save_user_message(
+        db,
+        chat_id=chat_id,
+        content=content,
+        user_id=user_id,
+    )
+
+    def _generate() -> Generator[str, None, None]:
+        yield format_sse_event(
+            EVENT_START,
+            {"chat_id": str(chat_id), "user_message_id": str(user_msg.id)},
+        )
+
+        history = message_service.get_recent_for_ai(
+            db, chat_id, limit=settings.AI_MAX_HISTORY_MESSAGES
+        )
+        workspace = ws_repo.get_workspace_by_id(db, chat.workspace_id)
+        system_instruction: str | None = (
+            workspace.system_instruction if workspace else None
+        )
+
+        provider_messages = build_provider_messages(
+            system_instruction=system_instruction,
+            history=history,
+            current_content=content,
+            max_history=settings.AI_MAX_HISTORY_MESSAGES,
+        )
+
+        provider = _get_provider()
+        accumulated: list[str] = []
+
+        try:
+            for chunk in provider.stream_response(provider_messages):
+                accumulated.append(chunk)
+                yield format_sse_event(EVENT_TOKEN, {"content": chunk})
+
+            full_content = "".join(accumulated)
+            if full_content.strip():
+                assistant_msg = message_service.save_assistant_message(
+                    db,
+                    chat_id=chat_id,
+                    content=full_content,
+                    model=settings.OPENAI_COMPATIBLE_MODEL,
+                    metadata_json={"provider": "openai_compatible", "streaming": True},
+                )
+                yield format_sse_event(
+                    EVENT_DONE,
+                    {"message_id": str(assistant_msg.id), "chat_id": str(chat_id)},
+                )
+            else:
+                yield format_sse_event(
+                    EVENT_DONE,
+                    {"message_id": None, "chat_id": str(chat_id)},
+                )
+        except (AIProviderError, AIConfigurationError, AIResponseError) as exc:
+            yield format_sse_event(
+                EVENT_ERROR, {"code": exc.code, "message": exc.message}
+            )
+        except Exception:
+            yield format_sse_event(
+                EVENT_ERROR,
+                {
+                    "code": "AI_SERVICE_UNAVAILABLE",
+                    "message": "An unexpected error occurred",
+                },
+            )
+
+    return _generate()

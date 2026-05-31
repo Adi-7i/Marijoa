@@ -89,6 +89,7 @@ This creates all tables:
 - `workspace_members`
 - `chats`
 - `messages`
+- `artifacts`
 
 ### 6. Run the development server
 
@@ -121,6 +122,7 @@ uvicorn app.main:app --reload
 | `d3162f320a62` | Empty placeholder |
 | `688811f0411a` | Create workspaces, workspace_members, chats |
 | `818152c07b8e` | Create messages table |
+| `831ac06d7d26` | Create artifacts table |
 
 To generate the workspace/chat migration fresh:
 ```bash
@@ -197,6 +199,17 @@ alembic upgrade head
 | Method | Endpoint | Auth required | Description |
 |---|---|---|---|
 | `POST` | `/api/v1/chats/{chat_id}/ai/respond` | Bearer token | Send conversation history to the AI provider and receive an assistant reply |
+| `POST` | `/api/v1/chats/{chat_id}/ai/stream` | Bearer token | Stream AI assistant reply as Server-Sent Events (SSE) |
+
+### Artifacts — `/api/v1/artifacts`
+
+| Method | Endpoint | Auth required | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/artifacts` | Bearer token | Create a new artifact in a workspace |
+| `GET` | `/api/v1/artifacts?workspace_id=` | Bearer token | List artifacts in a workspace (optional filters: `chat_id`, `type`, `limit`, `offset`) |
+| `GET` | `/api/v1/artifacts/{artifact_id}` | Bearer token | Get a single artifact by ID |
+| `PATCH` | `/api/v1/artifacts/{artifact_id}` | Bearer token | Update artifact title, content, or metadata |
+| `DELETE` | `/api/v1/artifacts/{artifact_id}` | Bearer token | Soft delete an artifact (sets `is_active=false`) |
 
 ## Manual API Testing with Swagger
 
@@ -245,6 +258,33 @@ alembic upgrade head
     {}
     ```
     The endpoint uses recent message history from the chat and returns the assistant reply, which is also persisted as a new message.
+19. **Stream AI response** — from a terminal (not Swagger, which does not support SSE):
+    ```bash
+    curl -N -X POST 'http://127.0.0.1:8000/api/v1/chats/<chat_id>/ai/stream' \
+      -H 'Authorization: Bearer <access_token>' \
+      -H 'Content-Type: application/json' \
+      -d '{"content":"Reply only with: Marijoa streaming works"}'
+    ```
+    You should see `event: start`, one or more `event: token` lines, then `event: done`.
+20. **Create an artifact** — `POST /api/v1/artifacts`
+    ```json
+    {
+      "workspace_id": "<workspace_id>",
+      "chat_id": "<chat_id>",
+      "title": "Q4 Summary",
+      "type": "document",
+      "content": "This is the Q4 planning summary."
+    }
+    ```
+    Copy the returned `id` — this is your `artifact_id`.
+21. **List artifacts** — `GET /api/v1/artifacts?workspace_id=<workspace_id>`
+22. **Get artifact** — `GET /api/v1/artifacts/<artifact_id>`
+23. **Update artifact** — `PATCH /api/v1/artifacts/<artifact_id>`
+    ```json
+    {"title": "Q4 Summary (revised)"}
+    ```
+24. **Delete artifact** (soft delete) — `DELETE /api/v1/artifacts/<artifact_id>`
+    Confirm the artifact no longer appears in the list (`is_active` is set to `false`).
 
 ## AI Gateway Configuration
 
@@ -278,12 +318,45 @@ AI_MAX_HISTORY_MESSAGES=20
 
 > **Security:** Never commit real API keys. Add `OPENAI_COMPATIBLE_API_KEY` to `.gitignore`-protected files only. Rotate any key that is accidentally exposed.
 
+## SSE Streaming
+
+The `/ai/stream` endpoint uses [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) to deliver the AI reply token-by-token. The response `Content-Type` is `text/event-stream`.
+
+### Event Protocol
+
+Each SSE message has the form:
+
+```
+event: <event_type>
+data: <json_payload>
+
+```
+
+| Event | Payload fields | Description |
+|---|---|---|
+| `start` | `chat_id`, `user_message_id` | Fired once after the user message is persisted, before any tokens arrive |
+| `token` | `content` | One content chunk from the provider; concatenate all chunks to reconstruct the full reply |
+| `done` | `message_id`, `chat_id` | Fired once after the full reply is persisted; `message_id` is the assistant message UUID (`null` if the provider returned an empty response) |
+| `error` | `code`, `message` | Fired on provider or service errors; no `done` event follows |
+
+### Example curl
+
+```bash
+curl -N -X POST 'http://127.0.0.1:8000/api/v1/chats/{chat_id}/ai/stream' \
+  -H 'Authorization: Bearer <access_token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Reply only with: Marijoa streaming works"}'
+```
+
+The `-N` flag disables curl's output buffering so events are printed as they arrive.
+
 ## Verify Tables in pgAdmin
 
 ```
 Database: Marijoa
 Schema: public → Tables:
   alembic_version
+  artifacts
   chats
   messages
   organization_members
@@ -361,3 +434,5 @@ pytest -m integration     # integration tests (requires live PostgreSQL)
 - Never hardcode AI provider keys (e.g. `OPENAI_COMPATIBLE_API_KEY`) in source code or config files tracked by git.
 - Rotate any AI credential immediately if it is accidentally exposed in logs, commits, or error responses.
 - AI credentials are never logged by the application and are never returned in API responses.
+- Streaming errors are sanitized before being sent as SSE `error` events — internal exceptions are mapped to a generic `AI_SERVICE_UNAVAILABLE` code so raw error details are never leaked to clients.
+- Artifacts use soft delete only (`is_active=false`); rows are never physically removed from the database.
