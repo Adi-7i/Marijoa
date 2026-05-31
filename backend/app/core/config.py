@@ -48,6 +48,18 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # ------------------------------------------------------------------
+    # AI Gateway
+    # ------------------------------------------------------------------
+    AI_PROVIDER: str = "openai_compatible"
+    OPENAI_COMPATIBLE_API_KEY: str = "change_me"
+    OPENAI_COMPATIBLE_BASE_URL: str = "https://your-openai-compatible-endpoint.com/openai/v1"
+    OPENAI_COMPATIBLE_MODEL: str = "claude-sonnet-4-6"
+    AI_REQUEST_TIMEOUT_SECONDS: int = 60
+    AI_MAX_OUTPUT_TOKENS: int = 1200
+    AI_TEMPERATURE: float = 0.4
+    AI_MAX_HISTORY_MESSAGES: int = 20
+
+    # ------------------------------------------------------------------
     # Validators
     # ------------------------------------------------------------------
 

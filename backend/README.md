@@ -88,6 +88,7 @@ This creates all tables:
 - `workspaces`
 - `workspace_members`
 - `chats`
+- `messages`
 
 ### 6. Run the development server
 
@@ -119,6 +120,7 @@ uvicorn app.main:app --reload
 | `2634de3c5c70` | Create refresh_tokens, organizations, organization_members |
 | `d3162f320a62` | Empty placeholder |
 | `688811f0411a` | Create workspaces, workspace_members, chats |
+| `818152c07b8e` | Create messages table |
 
 To generate the workspace/chat migration fresh:
 ```bash
@@ -183,6 +185,19 @@ alembic upgrade head
 | `PATCH` | `/api/v1/chats/{chat_id}` | Creator or WS MANAGER+ | Rename or change status |
 | `DELETE` | `/api/v1/chats/{chat_id}` | Creator or WS MANAGER+ | Soft delete (status → DELETED) |
 
+### Messages — `/api/v1/chats/{chat_id}/messages`
+
+| Method | Endpoint | Auth required | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/chats/{chat_id}/messages` | Bearer token | List all messages in a chat |
+| `POST` | `/api/v1/chats/{chat_id}/messages` | Bearer token | Post a new message to a chat |
+
+### AI Gateway — `/api/v1/chats/{chat_id}/ai`
+
+| Method | Endpoint | Auth required | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/chats/{chat_id}/ai/respond` | Bearer token | Send conversation history to the AI provider and receive an assistant reply |
+
 ## Manual API Testing with Swagger
 
 1. Start the server: `uvicorn app.main:app --reload`
@@ -220,6 +235,48 @@ alembic upgrade head
     {"status": "ARCHIVED"}
     ```
 15. **Delete chat** — `DELETE /api/v1/chats/<chat_id>` (soft delete — sets status=DELETED)
+16. **Post a message** — `POST /api/v1/chats/<chat_id>/messages`
+    ```json
+    {"role": "user", "content": "Hello, can you help me with Q4 planning?"}
+    ```
+17. **List messages** — `GET /api/v1/chats/<chat_id>/messages`
+18. **Call AI respond** — `POST /api/v1/chats/<chat_id>/ai/respond`
+    ```json
+    {}
+    ```
+    The endpoint uses recent message history from the chat and returns the assistant reply, which is also persisted as a new message.
+
+## AI Gateway Configuration
+
+The AI gateway reads all settings from `.env`. Add these variables to your local `.env` (never commit real keys):
+
+This project uses the **OpenAI Python SDK** pointed at any OpenAI-compatible Responses API endpoint. No Azure-specific SDK is used. The SDK handles the `/responses` path automatically — do not include it in `OPENAI_COMPATIBLE_BASE_URL`.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `AI_PROVIDER` | Yes | `openai_compatible` | Provider selector. Only `openai_compatible` is supported. |
+| `OPENAI_COMPATIBLE_API_KEY` | Yes | — | API key for the endpoint — **never commit** |
+| `OPENAI_COMPATIBLE_BASE_URL` | Yes | — | Base URL without trailing `/responses` path |
+| `OPENAI_COMPATIBLE_MODEL` | Yes | `claude-sonnet-4-6` | Model name / deployment identifier |
+| `AI_REQUEST_TIMEOUT_SECONDS` | No | `60` | HTTP timeout for provider requests |
+| `AI_MAX_OUTPUT_TOKENS` | No | `1200` | Maximum tokens in the assistant reply |
+| `AI_TEMPERATURE` | No | `0.4` | Sampling temperature (0.0 – 2.0) |
+| `AI_MAX_HISTORY_MESSAGES` | No | `20` | Recent messages sent as LLM context |
+
+Example `.env` block:
+
+```
+AI_PROVIDER=openai_compatible
+OPENAI_COMPATIBLE_API_KEY=your_actual_key_here
+OPENAI_COMPATIBLE_BASE_URL=https://your-resource.openai.azure.com/openai/v1
+OPENAI_COMPATIBLE_MODEL=claude-sonnet-4-6
+AI_REQUEST_TIMEOUT_SECONDS=60
+AI_MAX_OUTPUT_TOKENS=1200
+AI_TEMPERATURE=0.4
+AI_MAX_HISTORY_MESSAGES=20
+```
+
+> **Security:** Never commit real API keys. Add `OPENAI_COMPATIBLE_API_KEY` to `.gitignore`-protected files only. Rotate any key that is accidentally exposed.
 
 ## Verify Tables in pgAdmin
 
@@ -228,6 +285,7 @@ Database: Marijoa
 Schema: public → Tables:
   alembic_version
   chats
+  messages
   organization_members
   organizations
   refresh_tokens
@@ -300,3 +358,6 @@ pytest -m integration     # integration tests (requires live PostgreSQL)
 - Workspace access requires explicit membership — knowing a workspace ID is not sufficient.
 - Chat soft-delete sets `status=DELETED`; rows are never physically removed.
 - All schema changes go through Alembic migrations only.
+- Never hardcode AI provider keys (e.g. `OPENAI_COMPATIBLE_API_KEY`) in source code or config files tracked by git.
+- Rotate any AI credential immediately if it is accidentally exposed in logs, commits, or error responses.
+- AI credentials are never logged by the application and are never returned in API responses.
