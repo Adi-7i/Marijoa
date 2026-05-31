@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.exceptions import AuthenticationError, AuthorizationError, ConflictError
+from app.modules.audit_logs import service as audit_service
+from app.modules.audit_logs.model import AuditAction
 from app.modules.auth import repository as auth_repo
 from app.modules.auth import security
 from app.modules.auth.schemas import LoginRequest, RegisterRequest
@@ -74,6 +76,8 @@ def register(db: Session, data: RegisterRequest) -> tuple[User, str, str]:
 
     db.commit()
     db.refresh(user)
+    audit_service.record_event(db, action=AuditAction.USER_REGISTERED, entity_type='user', entity_id=user.id, user_id=user.id, metadata={'email': user.email})
+    db.commit()
     return user, access_token, refresh_token
 
 
@@ -103,6 +107,8 @@ def login(
 
     db.commit()
     db.refresh(user)
+    audit_service.record_event(db, action=AuditAction.USER_LOGIN, entity_type='user', entity_id=user.id, user_id=user.id)
+    db.commit()
     return user, access_token, refresh_token
 
 
@@ -143,5 +149,8 @@ def logout(db: Session, refresh_token_raw: str) -> None:
     token_hash = security.hash_token(refresh_token_raw)
     stored = auth_repo.get_token_by_hash(db, token_hash)
     if stored is not None and stored.revoked_at is None:
+        user_id = stored.user_id
         auth_repo.revoke_token(db, stored)
+        db.commit()
+        audit_service.record_event(db, action=AuditAction.USER_LOGOUT, entity_type='user', entity_id=user_id, user_id=user_id)
         db.commit()

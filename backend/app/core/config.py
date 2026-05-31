@@ -42,7 +42,24 @@ class Settings(BaseSettings):
 
     # Storage
     LOCAL_STORAGE_PATH: str = "/tmp/marijoa/uploads"
-    MAX_UPLOAD_SIZE_MB: int = 20
+    MAX_UPLOAD_SIZE_MB: int = 25
+
+    # Azure Blob Storage
+    AZURE_STORAGE_CONNECTION_STRING: str = "change_me"
+    AZURE_STORAGE_CONTAINER_NAME: str = "marijoa-files"
+    AZURE_STORAGE_ACCOUNT_NAME: str = "change_me"
+    AZURE_STORAGE_PUBLIC_ACCESS: bool = False
+
+    # File uploads
+    ALLOWED_UPLOAD_MIME_TYPES: str = (
+        "image/jpeg,image/png,image/gif,image/webp,"
+        "application/pdf,"
+        "text/plain,text/csv,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+    FILE_DOWNLOAD_SAS_EXPIRE_MINUTES: int = 10
 
     # Logging
     LOG_LEVEL: str = "INFO"

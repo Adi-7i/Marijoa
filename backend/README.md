@@ -90,6 +90,8 @@ This creates all tables:
 - `chats`
 - `messages`
 - `artifacts`
+- `files`
+- `audit_logs`
 
 ### 6. Run the development server
 
@@ -123,6 +125,7 @@ uvicorn app.main:app --reload
 | `688811f0411a` | Create workspaces, workspace_members, chats |
 | `818152c07b8e` | Create messages table |
 | `831ac06d7d26` | Create artifacts table |
+| `3bc5dbde46c2` | Create files and audit_logs tables |
 
 To generate the workspace/chat migration fresh:
 ```bash
@@ -211,6 +214,16 @@ alembic upgrade head
 | `PATCH` | `/api/v1/artifacts/{artifact_id}` | Bearer token | Update artifact title, content, or metadata |
 | `DELETE` | `/api/v1/artifacts/{artifact_id}` | Bearer token | Soft delete an artifact (sets `is_active=false`) |
 
+### Files — `/api/v1/files`
+
+| Method | Endpoint | Min role | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/files/upload` | WS MEMBER+ | Upload file to workspace |
+| `GET` | `/api/v1/files` | WS MEMBER+ | List files in workspace |
+| `GET` | `/api/v1/files/{file_id}` | WS MEMBER+ | File metadata |
+| `DELETE` | `/api/v1/files/{file_id}` | Uploader or WS MANAGER+ | Soft delete file |
+| `POST` | `/api/v1/files/{file_id}/download-url` | WS MEMBER+ | Generate SAS download URL |
+
 ## Manual API Testing with Swagger
 
 1. Start the server: `uvicorn app.main:app --reload`
@@ -285,6 +298,15 @@ alembic upgrade head
     ```
 24. **Delete artifact** (soft delete) — `DELETE /api/v1/artifacts/<artifact_id>`
     Confirm the artifact no longer appears in the list (`is_active` is set to `false`).
+25. **Upload a file** — `POST /api/v1/files/upload` (multipart/form-data)
+    Use the Swagger UI form: set `workspace_id` to `<workspace_id>` and select a file.
+    Copy the returned `id` — this is your `file_id`.
+26. **List files** — `GET /api/v1/files?workspace_id=<workspace_id>`
+27. **Get file metadata** — `GET /api/v1/files/<file_id>`
+28. **Generate download URL** — `POST /api/v1/files/<file_id>/download-url`
+    Returns a time-limited SAS URL. The URL expires after `FILE_DOWNLOAD_SAS_EXPIRE_MINUTES`.
+29. **Delete file** (soft delete) — `DELETE /api/v1/files/<file_id>`
+    Confirm the file no longer appears in the list.
 
 ## AI Gateway Configuration
 
@@ -350,6 +372,37 @@ curl -N -X POST 'http://127.0.0.1:8000/api/v1/chats/{chat_id}/ai/stream' \
 
 The `-N` flag disables curl's output buffering so events are printed as they arrive.
 
+## Azure Blob Storage Configuration
+
+The file upload module reads all settings from `.env`. Add these variables to your local `.env` (never commit real connection strings):
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `AZURE_STORAGE_CONNECTION_STRING` | Yes | — | Full Azure Storage connection string — **never commit** |
+| `AZURE_STORAGE_CONTAINER_NAME` | Yes | — | Name of the private blob container |
+| `AZURE_STORAGE_ACCOUNT_NAME` | Yes | — | Azure Storage account name |
+| `AZURE_STORAGE_PUBLIC_ACCESS` | No | `false` | Must remain `false`; container is always private |
+| `MAX_UPLOAD_SIZE_MB` | No | `50` | Maximum allowed upload size in megabytes |
+| `ALLOWED_UPLOAD_MIME_TYPES` | No | (common types) | Comma-separated list of permitted MIME types |
+| `FILE_DOWNLOAD_SAS_EXPIRE_MINUTES` | No | `60` | Lifetime of generated SAS download URLs in minutes |
+
+> **Security:** The container is private. Do not expose permanent public URLs. SAS URLs expire after `FILE_DOWNLOAD_SAS_EXPIRE_MINUTES` and are scoped to a single blob.
+
+## Audit Logs
+
+Key actions across the application are automatically recorded to the `audit_logs` table. No additional configuration is required — audit logging is active by default.
+
+Examples of audited events:
+
+| Event | Trigger |
+|---|---|
+| `USER_REGISTERED` | A new user account is created |
+| `USER_LOGIN` | Successful authentication |
+| `FILE_UPLOADED` | A file is successfully stored in Azure Blob Storage |
+| `FILE_DELETED` | A file record is soft-deleted |
+
+Metadata stored with each log entry is sanitized before persistence — passwords, tokens, API keys, and connection strings are **never** written to audit logs.
+
 ## Verify Tables in pgAdmin
 
 ```
@@ -357,7 +410,9 @@ Database: Marijoa
 Schema: public → Tables:
   alembic_version
   artifacts
+  audit_logs
   chats
+  files
   messages
   organization_members
   organizations
@@ -436,3 +491,8 @@ pytest -m integration     # integration tests (requires live PostgreSQL)
 - AI credentials are never logged by the application and are never returned in API responses.
 - Streaming errors are sanitized before being sent as SSE `error` events — internal exceptions are mapped to a generic `AI_SERVICE_UNAVAILABLE` code so raw error details are never leaked to clients.
 - Artifacts use soft delete only (`is_active=false`); rows are never physically removed from the database.
+- Azure connection strings are never logged, never returned in API responses, and never stored in the database.
+- The Azure Blob Storage container is private; permanent public URLs are never exposed to clients.
+- SAS download URLs are time-limited and expire after `FILE_DOWNLOAD_SAS_EXPIRE_MINUTES`; a new request is required for each download session.
+- Filenames are sanitized server-side before storage; user-provided path components are never trusted.
+- Audit logs are append-only; metadata is sanitized before storage so passwords, tokens, and API keys are never written to audit records.
