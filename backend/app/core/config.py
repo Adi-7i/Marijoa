@@ -51,6 +51,16 @@ class Settings(BaseSettings):
     # Validators
     # ------------------------------------------------------------------
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalise_database_url(cls, v: str) -> str:
+        # Ensure the psycopg v3 driver is used regardless of how the URL was written.
+        # Handles postgresql:// and postgres:// (Heroku/cloud shorthand).
+        if v.startswith("postgresql://") or v.startswith("postgres://"):
+            v = v.replace("postgresql://", "postgresql+psycopg://", 1)
+            v = v.replace("postgres://", "postgresql+psycopg://", 1)
+        return v
+
     @field_validator("APP_ENV")
     @classmethod
     def validate_env(cls, v: str) -> str:
