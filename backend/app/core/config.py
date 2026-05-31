@@ -27,8 +27,20 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+psycopg://app_user:change_me@localhost:5432/Marijoa"
 
-    # Redis
+    # Redis Cloud
     REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_ENABLED: bool = True
+    REDIS_SOCKET_TIMEOUT_SECONDS: int = 5
+    REDIS_CONNECT_TIMEOUT_SECONDS: int = 5
+    REDIS_KEY_PREFIX: str = "marijoa"
+    REDIS_HEALTHCHECK_ENABLED: bool = True
+
+    # Rate limiting
+    RATE_LIMIT_ENABLED: bool = True
+    AUTH_LOGIN_RATE_LIMIT: int = 10
+    AUTH_LOGIN_RATE_WINDOW_SECONDS: int = 60
+    AI_RATE_LIMIT: int = 30
+    AI_RATE_WINDOW_SECONDS: int = 60
 
     # JWT
     JWT_SECRET_KEY: str = "change-me-in-production"

@@ -17,6 +17,11 @@ class DbHealthResponse(BaseModel):
     database: str  # "connected" | "unavailable"
 
 
+class RedisHealthResponse(BaseModel):
+    status: str   # "ok" | "error" | "disabled"
+    redis: str    # "connected" | "unavailable" | "disabled"
+
+
 class RootResponse(BaseModel):
     service: str
     status: str

@@ -89,6 +89,27 @@ class InvalidOperationError(AppException):
         )
 
 
+class AdminPermissionError(AppException):
+    """Raised when an authenticated user lacks admin privileges."""
+
+    def __init__(self, message: str = "Admin access required") -> None:
+        super().__init__(code="ADMIN_FORBIDDEN", message=message, status_code=403)
+
+
+class RedisConfigurationError(AppException):
+    """Raised when Redis is not properly configured."""
+
+    def __init__(self, message: str = "Redis is not properly configured") -> None:
+        super().__init__(code="REDIS_CONFIGURATION_ERROR", message=message, status_code=503)
+
+
+class RedisUnavailableError(AppException):
+    """Raised when Redis is temporarily unreachable."""
+
+    def __init__(self, message: str = "Redis is temporarily unavailable") -> None:
+        super().__init__(code="REDIS_UNAVAILABLE", message=message, status_code=503)
+
+
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return JSONResponse(

@@ -474,6 +474,122 @@ pytest                    # unit + mock tests (no live DB required)
 pytest -m integration     # integration tests (requires live PostgreSQL)
 ```
 
+## Admin APIs (Step 17)
+
+Organization-scoped admin endpoints. Only **OWNER** or **ADMIN** members can access them.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/admin/organizations/{org_id}/users` | List org members with public profile data |
+| `GET` | `/api/v1/admin/organizations/{org_id}/audit-logs` | Paginated org audit log with filters |
+| `GET` | `/api/v1/admin/organizations/{org_id}/usage` | Usage summary (counts + storage) |
+
+### How to test in Swagger
+
+1. Register / login as a user
+2. Create an organization (you become OWNER automatically)
+3. Authorize with your `access_token` (`Bearer <token>`)
+4. Use any of the three admin endpoints above with your organization's UUID
+
+**Permission model:** A non-OWNER/ADMIN member receives `403 FORBIDDEN`. A user with no org membership receives `404 NOT_FOUND` — the org's existence is not revealed.
+
+### Usage summary response
+
+```json
+{
+  "organization_id": "...",
+  "users_count": 10,
+  "active_users_count": 8,
+  "workspaces_count": 5,
+  "chats_count": 30,
+  "messages_count": 240,
+  "artifacts_count": 12,
+  "files_count": 6,
+  "storage_bytes": 12345678
+}
+```
+
+### Admin audit events
+
+Every admin API call records an audit event (`ADMIN_USERS_VIEWED`, `ADMIN_AUDIT_LOGS_VIEWED`, `ADMIN_USAGE_VIEWED`). Audit log failures are non-blocking and never crash the admin response.
+
+---
+
+## Redis Cloud Integration (Step 18)
+
+### Required environment variables
+
+Add these to `.env` (never commit `.env`):
+
+```env
+# Use rediss:// (double 's') for TLS-enabled Redis Cloud endpoints
+REDIS_URL=rediss://default:change_me@your-redis-cloud-host:6379/0
+REDIS_ENABLED=true
+REDIS_SOCKET_TIMEOUT_SECONDS=5
+REDIS_CONNECT_TIMEOUT_SECONDS=5
+REDIS_KEY_PREFIX=marijoa
+REDIS_HEALTHCHECK_ENABLED=true
+
+RATE_LIMIT_ENABLED=true
+AUTH_LOGIN_RATE_LIMIT=10
+AUTH_LOGIN_RATE_WINDOW_SECONDS=60
+AI_RATE_LIMIT=30
+AI_RATE_WINDOW_SECONDS=60
+```
+
+> **TLS:** Redis Cloud endpoints require `rediss://` (with the extra `s`). Using plain `redis://` against a TLS endpoint will fail at connect time.
+>
+> **Security:** `REDIS_URL` contains your Redis password. Never log it, never return it in API responses, never commit `.env`.
+
+### Test Redis health
+
+```bash
+GET /api/v1/health/redis
+```
+
+**Responses:**
+
+| State | HTTP | Body |
+|-------|------|------|
+| Connected | 200 | `{"status":"ok","redis":"connected"}` |
+| Unavailable | 503 | `{"status":"error","redis":"unavailable"}` |
+| Disabled (`REDIS_ENABLED=false`) | 200 | `{"status":"disabled","redis":"disabled"}` |
+
+The response never includes host, port, username, password, or URL.
+
+### Redis key format
+
+All keys follow the pattern `marijoa:{namespace}:{identifier}`:
+
+```
+marijoa:ratelimit:user:{user_id}
+marijoa:token_blacklist:{jti}
+marijoa:cache:org_usage:{org_id}
+```
+
+The `REDIS_KEY_PREFIX` env var controls the `marijoa` prefix.
+
+### Development without Redis
+
+Set `REDIS_ENABLED=false` to run locally without a Redis connection. All rate limit checks **fail open** (allow) when Redis is disabled or unavailable, so the application remains functional.
+
+---
+
+## Alembic Migration Status
+
+No Alembic migration is required for Steps 17 + 18.
+
+- Step 17 (Admin APIs) uses existing tables: `organization_members`, `users`, `audit_logs`, `workspaces`, `chats`, `messages`, `artifacts`, `files`.
+- Step 18 (Redis Cloud) uses an external Redis instance — no new database tables.
+
+Verify current migration state:
+
+```bash
+alembic current
+```
+
+---
+
 ## Security Notes
 
 - Never store plain passwords — only bcrypt hashes.
@@ -495,4 +611,10 @@ pytest -m integration     # integration tests (requires live PostgreSQL)
 - The Azure Blob Storage container is private; permanent public URLs are never exposed to clients.
 - SAS download URLs are time-limited and expire after `FILE_DOWNLOAD_SAS_EXPIRE_MINUTES`; a new request is required for each download session.
 - Filenames are sanitized server-side before storage; user-provided path components are never trusted.
+- Admin APIs are organization-scoped — no global system-wide data is accessible to org admins.
+- Only OWNER/ADMIN org members can access admin routes; MANAGER/MEMBER/VIEWER are blocked with 403.
+- Admin audit log metadata is re-sanitized before returning to the API (second defence against accidental secret storage).
+- `REDIS_URL` is never logged by the application; do not expose it via env-dump endpoints or config APIs.
+- Redis credentials stay in `.env` only — never hardcoded, never returned in API responses.
+- Rate limit checks fail open if Redis is unavailable, keeping the application operational.
 - Audit logs are append-only; metadata is sanitized before storage so passwords, tokens, and API keys are never written to audit records.
