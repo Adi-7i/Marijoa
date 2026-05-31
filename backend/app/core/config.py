@@ -89,6 +89,17 @@ class Settings(BaseSettings):
     AI_MAX_HISTORY_MESSAGES: int = 20
 
     # ------------------------------------------------------------------
+    # Background Jobs (RQ)
+    # ------------------------------------------------------------------
+    BACKGROUND_JOBS_ENABLED: bool = True
+    RQ_DEFAULT_QUEUE: str = "default"
+    RQ_FILE_QUEUE: str = "files"
+    RQ_AI_QUEUE: str = "ai"
+    RQ_JOB_TIMEOUT_SECONDS: int = 600
+    RQ_JOB_RESULT_TTL_SECONDS: int = 3600
+    RQ_JOB_FAILURE_TTL_SECONDS: int = 86400
+
+    # ------------------------------------------------------------------
     # Validators
     # ------------------------------------------------------------------
 

@@ -129,6 +129,14 @@ async def upload_file(
         metadata={'filename': file_obj.original_filename, 'size_bytes': file_obj.size_bytes, 'mime_type': file_obj.mime_type},
     )
     db.commit()  # commit audit log too
+
+    # Enqueue placeholder processing job — non-blocking, fire-and-forget
+    try:
+        from app.workers.enqueue import enqueue_file_processing_task
+        enqueue_file_processing_task(file_obj.id)
+    except Exception:
+        logger.warning("Failed to enqueue file processing task for file_id=%s", file_obj.id)
+
     return file_obj
 
 
