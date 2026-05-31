@@ -1,6 +1,6 @@
 # Marijoa Backend
 
-Internal company AI chat application backend — FastAPI, PostgreSQL, SQLAlchemy 2.0.
+Internal company AI chat application backend — FastAPI, PostgreSQL, SQLAlchemy 2.0, Alembic.
 
 ## Tech Stack
 
@@ -8,9 +8,9 @@ Internal company AI chat application backend — FastAPI, PostgreSQL, SQLAlchemy
 - FastAPI
 - Pydantic v2 + pydantic-settings
 - Uvicorn
-- PostgreSQL (self-hosted, async via psycopg)
-- SQLAlchemy 2.0 (wired in a future step)
-- Alembic (wired in a future step)
+- PostgreSQL (self-hosted, psycopg v3 sync driver)
+- SQLAlchemy 2.0
+- Alembic
 - pytest + httpx
 
 ## Local Setup
@@ -19,7 +19,7 @@ Internal company AI chat application backend — FastAPI, PostgreSQL, SQLAlchemy
 
 ```bash
 cd backend
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 ```
 
@@ -29,52 +29,116 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+> **Tip (if pip fails on this machine):** use `uv` — `uv pip install -r requirements.txt`
+
 ### 3. Create your local .env
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and fill in real values for your environment.
+Edit `.env` and fill in real values.
 
 > **Important:** Never commit `.env` to version control. It is listed in `.gitignore`.
 
-### 4. PostgreSQL setup
+> **Driver note:** `DATABASE_URL` must use `postgresql+psycopg://` (psycopg v3). Plain `postgresql://` is automatically normalised at startup, but using the explicit scheme is preferred.
 
-Before running database migrations in a future step, create the application database manually:
+### 4. Create the PostgreSQL database
 
-```sql
-CREATE DATABASE "Marijoa";
-CREATE USER app_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE "Marijoa" TO app_user;
+**Step A — Fill in the admin connection values in your `.env`:**
+
+```
+POSTGRES_ADMIN_HOST=<your-pg-host>
+POSTGRES_ADMIN_PORT=5432
+POSTGRES_ADMIN_USER=<admin-user>
+POSTGRES_ADMIN_PASSWORD=<admin-password>
+POSTGRES_ADMIN_DB=postgres
+APP_DATABASE_NAME=Marijoa
 ```
 
-Then update `DATABASE_URL` in your `.env` accordingly.
+These are used only by the creation script — the running app uses `DATABASE_URL`.
 
-### 5. Run the development server
+**Step B — Run the database creation script:**
+
+```bash
+python scripts/create_database.py
+```
+
+The script checks whether `Marijoa` already exists before attempting creation.
+Running it multiple times is safe.
+
+**Step C — Verify in pgAdmin** that the `Marijoa` database now appears.
+
+Also set `DATABASE_URL` so the app can connect:
+
+```
+DATABASE_URL=postgresql+psycopg://app_user:your_password@localhost:5432/Marijoa
+```
+
+**Step D — Apply migrations (only after the database exists):**
+
+```bash
+alembic upgrade head
+```
+
+> **Manually via psql (alternative):**
+> ```sql
+> CREATE DATABASE "Marijoa";
+> GRANT ALL PRIVILEGES ON DATABASE "Marijoa" TO app_user;
+> ```
+
+### 6. Run the development server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-## Health Check URLs
+## Alembic Reference
+
+| Command | Description |
+|---|---|
+| `alembic upgrade head` | Apply all pending migrations |
+| `alembic downgrade -1` | Roll back the last migration |
+| `alembic current` | Show current revision in the DB |
+| `alembic history` | Show full migration history |
+| `alembic revision --autogenerate -m "add_users_table"` | Generate a new migration from model changes |
+| `alembic heads` | Show head revisions (no DB needed) |
+
+> Alembic reads `DATABASE_URL` from `.env` via settings — the real URL is never stored in `alembic.ini`.
+
+## API Endpoints
 
 | Endpoint | Description |
 |---|---|
 | `GET /` | Service info |
 | `GET /health` | Basic liveness |
 | `GET /api/v1/health` | API v1 health |
+| `GET /api/v1/health/db` | Database connectivity check |
 | `GET /docs` | Swagger UI |
 | `GET /redoc` | ReDoc |
+
+### DB health response
+
+**Connected (HTTP 200):**
+```json
+{"status": "ok", "database": "connected"}
+```
+
+**Unavailable (HTTP 503):**
+```json
+{"status": "error", "database": "unavailable"}
+```
 
 ## Run Tests
 
 ```bash
-pytest
+pytest                          # unit + mock tests only (no live DB required)
+pytest -m integration           # requires a running PostgreSQL instance
 ```
 
 ## Notes
 
-- `APP_ENV=production` will reject weak default secrets at startup.
+- `APP_ENV=production` rejects weak default secrets at startup.
 - JWT secrets and DB credentials must always come from environment variables.
-- SQLAlchemy engine and Alembic will be wired in Step 3.
+- DB connectivity errors are logged by error type only — credentials are never logged.
+- SQLAlchemy uses sync sessions (psycopg v3); async sessions will be introduced in a later step if needed.

@@ -12,6 +12,11 @@ class HealthV1Response(HealthResponse):
     api_version: str
 
 
+class DbHealthResponse(BaseModel):
+    status: str    # "ok" | "error"
+    database: str  # "connected" | "unavailable"
+
+
 class RootResponse(BaseModel):
     service: str
     status: str
