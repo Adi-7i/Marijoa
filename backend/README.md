@@ -80,7 +80,14 @@ DATABASE_URL=postgresql+psycopg://app_user:your_password@localhost:5432/Marijoa
 alembic upgrade head
 ```
 
-This creates all tables: `users`, `refresh_tokens`, `organizations`, `organization_members`.
+This creates all tables:
+- `users`
+- `refresh_tokens`
+- `organizations`
+- `organization_members`
+- `workspaces`
+- `workspace_members`
+- `chats`
 
 ### 6. Run the development server
 
@@ -102,6 +109,22 @@ uvicorn app.main:app --reload
 > `DATABASE_URL` is always read from `.env` via settings — never from `alembic.ini`.
 
 > **Rule:** Never create or modify tables manually in pgAdmin. All schema changes go through SQLAlchemy models + Alembic migrations.
+
+## Migration History
+
+| Revision | Description |
+|---|---|
+| `e1f2a3b4c5d6` | Initial baseline (empty) |
+| `2f46d9be096a` | Create users table |
+| `2634de3c5c70` | Create refresh_tokens, organizations, organization_members |
+| `d3162f320a62` | Empty placeholder |
+| `688811f0411a` | Create workspaces, workspace_members, chats |
+
+To generate the workspace/chat migration fresh:
+```bash
+alembic revision --autogenerate -m "create_workspaces_and_chats_tables"
+alembic upgrade head
+```
 
 ## API Endpoints
 
@@ -126,8 +149,6 @@ uvicorn app.main:app --reload
 | `POST` | `/api/v1/auth/logout` | No | Revoke refresh token |
 | `GET` | `/api/v1/auth/me` | Bearer token | Current user profile |
 
-> Auth is **not** implemented yet in Step 9+ (workspace/chat). Only user identity and organization membership are in scope.
-
 ### Organizations — `/api/v1/organizations`
 
 | Method | Endpoint | Min role | Description |
@@ -139,7 +160,30 @@ uvicorn app.main:app --reload
 | `POST` | `/api/v1/organizations/{org_id}/members` | ADMIN | Add member by email |
 | `PATCH` | `/api/v1/organizations/{org_id}/members/{member_id}` | ADMIN | Update role/status |
 
-## Manual API testing with Swagger
+### Workspaces — `/api/v1/workspaces`
+
+| Method | Endpoint | Min role | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/workspaces` | Org MANAGER+ | Create workspace |
+| `GET` | `/api/v1/workspaces` | Authenticated | List accessible workspaces |
+| `GET` | `/api/v1/workspaces/{workspace_id}` | WS MEMBER+ | Workspace details |
+| `PATCH` | `/api/v1/workspaces/{workspace_id}` | WS ADMIN+ | Update workspace settings |
+| `DELETE` | `/api/v1/workspaces/{workspace_id}` | WS ADMIN+ | Deactivate workspace (soft delete) |
+| `GET` | `/api/v1/workspaces/{workspace_id}/members` | WS MEMBER+ | List workspace members |
+| `POST` | `/api/v1/workspaces/{workspace_id}/members` | WS ADMIN+ | Add member by email |
+| `PATCH` | `/api/v1/workspaces/{workspace_id}/members/{member_id}` | WS ADMIN+ | Update member role/status |
+
+### Chats — `/api/v1/chats`
+
+| Method | Endpoint | Min role | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/chats` | WS MEMBER+ | Create a chat |
+| `GET` | `/api/v1/chats?workspace_id=` | WS MEMBER+ | List chats in workspace |
+| `GET` | `/api/v1/chats/{chat_id}` | WS MEMBER+ | Chat details |
+| `PATCH` | `/api/v1/chats/{chat_id}` | Creator or WS MANAGER+ | Rename or change status |
+| `DELETE` | `/api/v1/chats/{chat_id}` | Creator or WS MANAGER+ | Soft delete (status → DELETED) |
+
+## Manual API Testing with Swagger
 
 1. Start the server: `uvicorn app.main:app --reload`
 2. Open `http://localhost:8000/docs`
@@ -154,9 +198,47 @@ uvicorn app.main:app --reload
    ```json
    {"name": "My Company"}
    ```
-8. **List my organizations** — `GET /api/v1/organizations/me`
+8. Copy the `id` from the response — this is your `organization_id`.
+9. **Create workspace** — `POST /api/v1/workspaces`
+   ```json
+   {
+     "organization_id": "<org_id>",
+     "name": "Sales Team",
+     "description": "Sales workspace",
+     "system_instruction": "You are a helpful sales assistant."
+   }
+   ```
+10. Copy the workspace `id`.
+11. **List workspaces** — `GET /api/v1/workspaces?organization_id=<org_id>`
+12. **Create chat** — `POST /api/v1/chats`
+    ```json
+    {"workspace_id": "<workspace_id>", "title": "Q4 Planning"}
+    ```
+13. **List chats** — `GET /api/v1/chats?workspace_id=<workspace_id>`
+14. **Archive chat** — `PATCH /api/v1/chats/<chat_id>`
+    ```json
+    {"status": "ARCHIVED"}
+    ```
+15. **Delete chat** — `DELETE /api/v1/chats/<chat_id>` (soft delete — sets status=DELETED)
 
-## Role hierarchy
+## Verify Tables in pgAdmin
+
+```
+Database: Marijoa
+Schema: public → Tables:
+  alembic_version
+  chats
+  organization_members
+  organizations
+  refresh_tokens
+  users
+  workspace_members
+  workspaces
+```
+
+> Do not manually create tables in pgAdmin. All schema changes go through SQLAlchemy models + Alembic migrations.
+
+## Organization Role Hierarchy
 
 ```
 OWNER > ADMIN > MANAGER > MEMBER
@@ -168,6 +250,36 @@ OWNER > ADMIN > MANAGER > MEMBER
 | ADMIN | Yes | Yes (excl. OWNER) | No |
 | MANAGER | No | No | No |
 | MEMBER | No | No | No |
+
+## Workspace Role Hierarchy
+
+```
+OWNER > ADMIN > MANAGER > MEMBER > VIEWER
+```
+
+| Role | Can update workspace | Can manage members | Can manage any chat |
+|---|---|---|---|
+| OWNER | Yes (incl. is_active) | Yes | Yes |
+| ADMIN | Yes | Yes | Yes |
+| MANAGER | No | No | Yes |
+| MEMBER | No | No | Own chats only |
+| VIEWER | No | No | Own chats only |
+
+## Workspace Creation Policy
+
+- Organization **OWNER**, **ADMIN**, **MANAGER** can create workspaces.
+- Organization **MEMBER** cannot create workspaces (enterprise-safe default).
+- Workspace creator automatically becomes workspace **OWNER**.
+- Workspace access requires explicit workspace membership — organization admins are **not** automatically members of all workspaces (principle of least privilege).
+
+## Chat Status Lifecycle
+
+```
+ACTIVE → ARCHIVED → ACTIVE     (can toggle)
+ACTIVE → DELETED               (terminal)
+ARCHIVED → DELETED             (terminal)
+DELETED → (no further transitions)
+```
 
 ## Run Tests
 
@@ -184,5 +296,7 @@ pytest -m integration     # integration tests (requires live PostgreSQL)
 - `APP_ENV=production` rejects weak default secrets at startup.
 - Refresh tokens are stored as SHA-256 hashes — the raw token is issued once only.
 - Login errors are intentionally generic to prevent user enumeration.
-- Organization not-found and forbidden errors are unified (ResourceNotFoundError) to avoid revealing org existence to non-members.
+- Organization/workspace not-found and forbidden errors are unified (ResourceNotFoundError) to avoid revealing resource existence to non-members.
+- Workspace access requires explicit membership — knowing a workspace ID is not sufficient.
+- Chat soft-delete sets `status=DELETED`; rows are never physically removed.
 - All schema changes go through Alembic migrations only.

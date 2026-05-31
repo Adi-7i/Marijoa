@@ -8,7 +8,18 @@ Keep imports ordered alphabetically by module path as the list grows.
 
 from app.db.base import Base  # noqa: F401
 from app.modules.auth.model import RefreshToken  # noqa: F401
+from app.modules.chats.model import Chat  # noqa: F401
 from app.modules.organizations.model import Organization, OrganizationMember  # noqa: F401
 from app.modules.users.model import User  # noqa: F401
+from app.modules.workspaces.model import Workspace, WorkspaceMember  # noqa: F401
 
-__all__ = ["Base", "RefreshToken", "Organization", "OrganizationMember", "User"]
+__all__ = [
+    "Base",
+    "Chat",
+    "Organization",
+    "OrganizationMember",
+    "RefreshToken",
+    "User",
+    "Workspace",
+    "WorkspaceMember",
+]

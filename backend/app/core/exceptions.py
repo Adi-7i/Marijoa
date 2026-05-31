@@ -77,6 +77,18 @@ class ConflictError(AppException):
         )
 
 
+class InvalidOperationError(AppException):
+    """Raised when a logically invalid operation is attempted (e.g., bad status transition)."""
+
+    def __init__(self, message: str, details: Any = None) -> None:
+        super().__init__(
+            code="BAD_REQUEST",
+            message=message,
+            status_code=400,
+            details=details,
+        )
+
+
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return JSONResponse(
