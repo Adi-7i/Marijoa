@@ -53,10 +53,14 @@ def _store_refresh_token(
 # ---------------------------------------------------------------------------
 
 def register(db: Session, data: RegisterRequest) -> tuple[User, str, str]:
-    """Create a new user and issue tokens.
+    """Create a new user, personal org + workspace, and issue tokens — all atomically.
 
     Returns (user, access_token, refresh_token_raw_value).
-    Raises ConflictError if the email is already registered.
+
+    Transaction guarantee:
+    User creation, personal organization, personal workspace, and refresh token
+    are all flushed before the single db.commit(). If any step fails the entire
+    registration is rolled back — no partial state can persist.
     """
     if user_repo.get_user_by_email(db, data.email) is not None:
         raise ConflictError("This email address is already registered")
@@ -71,12 +75,26 @@ def register(db: Session, data: RegisterRequest) -> tuple[User, str, str]:
         ),
     )
 
+    # Create personal org + workspace as part of the same transaction.
+    # ensure_personal_context flushes but does not commit — atomicity is preserved.
+    from app.modules.personal.service import ensure_personal_context
+    ensure_personal_context(db, user)
+
     access_token = security.create_access_token(str(user.id))
     refresh_token = _store_refresh_token(db, user.id)
 
+    # Single commit: user + personal org + personal workspace + refresh token
     db.commit()
     db.refresh(user)
-    audit_service.record_event(db, action=AuditAction.USER_REGISTERED, entity_type='user', entity_id=user.id, user_id=user.id, metadata={'email': user.email})
+
+    audit_service.record_event(
+        db,
+        action=AuditAction.USER_REGISTERED,
+        entity_type="user",
+        entity_id=user.id,
+        user_id=user.id,
+        metadata={"email": user.email},
+    )
     db.commit()
     return user, access_token, refresh_token
 
@@ -107,7 +125,7 @@ def login(
 
     db.commit()
     db.refresh(user)
-    audit_service.record_event(db, action=AuditAction.USER_LOGIN, entity_type='user', entity_id=user.id, user_id=user.id)
+    audit_service.record_event(db, action=AuditAction.USER_LOGIN, entity_type="user", entity_id=user.id, user_id=user.id)
     db.commit()
     return user, access_token, refresh_token
 
@@ -152,5 +170,5 @@ def logout(db: Session, refresh_token_raw: str) -> None:
         user_id = stored.user_id
         auth_repo.revoke_token(db, stored)
         db.commit()
-        audit_service.record_event(db, action=AuditAction.USER_LOGOUT, entity_type='user', entity_id=user_id, user_id=user_id)
+        audit_service.record_event(db, action=AuditAction.USER_LOGOUT, entity_type="user", entity_id=user_id, user_id=user_id)
         db.commit()

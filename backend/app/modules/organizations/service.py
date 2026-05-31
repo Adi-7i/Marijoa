@@ -7,19 +7,21 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, ResourceNotFoundError
+from app.core.exceptions import AuthorizationError, ConflictError, ResourceNotFoundError
 from app.modules.organizations import permissions, repository
 from app.modules.organizations.model import (
     OrgMemberStatus,
     OrgRole,
     Organization,
     OrganizationMember,
+    OrganizationType,
 )
 from app.modules.organizations.schemas import (
     OrganizationCreate,
     OrganizationMemberCreate,
     OrganizationMemberRead,
     OrganizationMemberUpdate,
+    OrganizationRead,
     OrganizationWithRoleRead,
 )
 from app.modules.users import repository as user_repo
@@ -32,7 +34,6 @@ from app.modules.users.model import User
 
 def generate_slug(name: str) -> str:
     """Derive a URL-safe lowercase slug from an organization name."""
-    # Normalize unicode to ASCII
     slug = normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
     slug = slug.lower().strip()
     slug = re.sub(r"[^\w\s-]", "", slug)
@@ -58,16 +59,22 @@ def _ensure_unique_slug(db: Session, base_slug: str) -> str:
 def create_organization(
     db: Session, data: OrganizationCreate, owner_id: UUID
 ) -> Organization:
-    """Create organization and owner membership atomically.
+    """Create a COMPANY organization and owner membership atomically.
 
-    Both inserts are flushed within the same transaction and committed together,
-    so a partial state (org without owner) can never persist.
+    Public API always creates COMPANY organizations. PERSONAL organizations
+    are created internally by the onboarding service only.
     """
     slug = data.slug if data.slug else generate_slug(data.name)
     slug = _ensure_unique_slug(db, slug)
 
     try:
-        org = repository.create_organization(db, name=data.name, slug=slug, owner_id=owner_id)
+        org = repository.create_organization(
+            db,
+            name=data.name,
+            slug=slug,
+            owner_id=owner_id,
+            org_type=OrganizationType.COMPANY,
+        )
         repository.create_member(
             db,
             organization_id=org.id,
@@ -101,7 +108,7 @@ def list_my_organizations(
     for org, member in rows:
         result.append(
             OrganizationWithRoleRead(
-                **OrganizationWithRoleRead.model_validate(org).model_dump(),
+                **OrganizationRead.model_validate(org).model_dump(),
                 current_user_role=OrgRole(member.role),
             )
         )
@@ -142,8 +149,15 @@ def add_member(
     data: OrganizationMemberCreate,
     acting_user_id: UUID,
 ) -> OrganizationMemberRead:
-    """Add an existing user to the organization by email. Requires ADMIN+."""
+    """Add an existing user to the organization by email. Requires ADMIN+.
+
+    Personal organizations do not support external members.
+    """
     permissions.require_org_role(db, user_id=acting_user_id, org_id=org_id, minimum_role=OrgRole.ADMIN)
+
+    org = repository.get_organization_by_id(db, org_id)
+    if org is not None and org.type == OrganizationType.PERSONAL.value:
+        raise AuthorizationError("Personal organizations do not support members")
 
     target_user = user_repo.get_user_by_email(db, str(data.email))
     if target_user is None:

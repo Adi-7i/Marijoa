@@ -1,6 +1,6 @@
 # Marijoa Backend
 
-Internal company AI chat application backend — MVP 1.
+Internal company AI chat application backend — MVP 1.1.
 
 ---
 
@@ -19,6 +19,53 @@ Internal company AI chat application backend — MVP 1.
 | AI | OpenAI-compatible endpoint (Azure OpenAI / Claude) |
 | Validation | Pydantic v2 |
 | Tests | Pytest |
+
+---
+
+## User Mode Architecture
+
+Marijoa supports two modes from a single user account — no separate login systems.
+
+### Personal Mode (default after registration)
+
+Every user gets a personal organization and workspace created automatically on signup:
+
+```
+User (one identity)
+└── Personal Organization  (type: PERSONAL, auto-created)
+    └── "Personal Chat" Workspace  (auto-created)
+        └── Chats / AI responses
+```
+
+The frontend can call `GET /api/v1/me/personal-context` immediately after login to get the workspace ID needed to start an AI chat — no manual setup required.
+
+### Organization / Business Mode
+
+The same user can also create company organizations:
+
+```
+User
+└── Acme Corp Organization  (type: COMPANY, manually created)
+    ├── Marketing Workspace
+    ├── Engineering Workspace
+    └── ...
+```
+
+Company organizations support:
+- Multiple members with roles (OWNER / ADMIN / MANAGER / MEMBER)
+- Multiple workspaces
+- Admin analytics, audit logs, usage summaries
+
+---
+
+## Organization Types
+
+| Type | Created by | Supports members | Admin APIs |
+|---|---|---|---|
+| `PERSONAL` | Automatically at registration | Owner only | Blocked (403) |
+| `COMPANY` | User via `POST /api/v1/organizations` | Yes | Yes |
+
+**Security constraint:** Public API clients cannot create `PERSONAL` organizations directly. Personal orgs are created exclusively by the internal registration/onboarding service.
 
 ---
 
@@ -119,6 +166,18 @@ alembic upgrade head
 alembic current
 ```
 
+### MVP 1.1 Migration
+
+```bash
+# The migration was added in MVP 1.1 — run if upgrading from MVP 1.0
+alembic upgrade head
+```
+
+This migration:
+- Adds `type` column to `organizations` (`PERSONAL` | `COMPANY`)
+- Backfills existing organizations as `COMPANY`
+- Adds a partial unique index ensuring one `PERSONAL` org per owner
+
 > Do NOT manually create tables. All schema changes go through Alembic.
 
 ---
@@ -144,8 +203,6 @@ Queue names:
 - `files` — future file processing, extraction, metadata
 - `ai` — future longer-running AI tasks
 
-The worker connects to Redis using the same `REDIS_URL` from `.env`. Never log `REDIS_URL`.
-
 ---
 
 ## Run Tests
@@ -157,16 +214,11 @@ pytest
 # Integration tests only (require real PostgreSQL, Redis, Azure, LLM)
 pytest -m integration
 
-# Specific module
-pytest tests/test_auth_security.py -v
+# Personal mode tests only
+pytest tests/test_personal_mode.py -v
 ```
 
-Default `pytest` run does **not** require:
-- Real PostgreSQL
-- Real Redis Cloud
-- Real Azure Blob Storage
-- Real OpenAI-compatible API
-- Any paid API calls
+Default `pytest` run does **not** require any real external services.
 
 ---
 
@@ -184,20 +236,25 @@ Default `pytest` run does **not** require:
 ### Auth
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/v1/auth/register` | Register new user |
+| POST | `/api/v1/auth/register` | Register user (auto-creates personal org + workspace) |
 | POST | `/api/v1/auth/login` | Login, get access + refresh token |
 | POST | `/api/v1/auth/refresh` | Refresh access token |
 | POST | `/api/v1/auth/logout` | Revoke refresh token |
 | GET | `/api/v1/auth/me` | Current user info |
 
+### Personal Mode
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/v1/me/personal-context` | Get personal org + workspace (creates if missing) |
+
 ### Organizations
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/v1/organizations` | Create organization |
-| GET | `/api/v1/organizations/me` | List my organizations |
+| POST | `/api/v1/organizations` | Create COMPANY organization |
+| GET | `/api/v1/organizations/me` | List user's organizations (includes `type` field) |
 | GET | `/api/v1/organizations/{org_id}` | Get organization |
 | GET | `/api/v1/organizations/{org_id}/members` | List members |
-| POST | `/api/v1/organizations/{org_id}/members` | Invite member |
+| POST | `/api/v1/organizations/{org_id}/members` | Add member (blocked for PERSONAL orgs) |
 | PATCH | `/api/v1/organizations/{org_id}/members/{member_id}` | Update member role |
 
 ### Workspaces
@@ -247,7 +304,7 @@ Default `pytest` run does **not** require:
 | GET | `/api/v1/files/{file_id}` | Get file + download URL |
 | DELETE | `/api/v1/files/{file_id}` | Delete file |
 
-### Admin (OWNER or ADMIN role required)
+### Admin (OWNER or ADMIN role, COMPANY orgs only)
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/v1/admin/organizations/{org_id}/users` | List org users |
@@ -258,19 +315,47 @@ Default `pytest` run does **not** require:
 
 ## Manual Swagger Flow
 
+### Personal Mode (simplest path)
+
 1. `POST /api/v1/auth/register` — create account
 2. `POST /api/v1/auth/login` — get `access_token`
 3. Click **Authorize** → paste `Bearer <access_token>`
-4. `POST /api/v1/organizations` — create org
-5. `POST /api/v1/workspaces` — create workspace (pass `organization_id`)
-6. `POST /api/v1/chats` — create chat (pass `workspace_id`)
-7. `POST /api/v1/chats/{chat_id}/messages` — send user message
-8. `POST /api/v1/chats/{chat_id}/ai/respond` — get AI response
-9. `POST /api/v1/chats/{chat_id}/ai/stream` — stream AI response (SSE)
-10. `POST /api/v1/artifacts` — create artifact
-11. `POST /api/v1/files/upload` — upload file
-12. `GET /api/v1/admin/organizations/{org_id}/usage` — check usage
-13. `GET /api/v1/health/redis` — verify Redis connection
+4. `GET /api/v1/me/personal-context` — get `personal_workspace.id`
+5. `POST /api/v1/chats` — create chat using `workspace_id` from step 4
+6. `POST /api/v1/chats/{chat_id}/messages` — send user message
+7. `POST /api/v1/chats/{chat_id}/ai/respond` — get AI response
+8. `POST /api/v1/chats/{chat_id}/ai/stream` — stream AI response (SSE)
+
+### Company / Organization Mode
+
+1. `POST /api/v1/auth/register` + login
+2. `POST /api/v1/organizations` — create org (`type` will be `COMPANY`)
+3. `GET /api/v1/organizations/me` — list all orgs with their `type` field
+4. `POST /api/v1/workspaces` — create workspace (pass `organization_id`)
+5. `POST /api/v1/organizations/{org_id}/members` — add team members by email
+6. `POST /api/v1/chats` — create chat under workspace
+7. `GET /api/v1/admin/organizations/{org_id}/usage` — view usage (COMPANY only)
+8. `GET /api/v1/admin/organizations/{org_id}/audit-logs` — view audit logs
+
+### Verifying Organization Types
+
+`GET /api/v1/organizations/me` response shows both personal and company orgs:
+```json
+[
+  {
+    "id": "...",
+    "name": "Aditya's Personal Workspace",
+    "type": "PERSONAL",
+    "current_user_role": "OWNER"
+  },
+  {
+    "id": "...",
+    "name": "Acme Corp",
+    "type": "COMPANY",
+    "current_user_role": "OWNER"
+  }
+]
+```
 
 ---
 
@@ -281,7 +366,10 @@ Default `pytest` run does **not** require:
 - Use `rediss://` (TLS) for Redis Cloud production endpoints
 - Azure Storage container should have private access (`AZURE_STORAGE_PUBLIC_ACCESS=false`)
 - File download URLs use time-limited SAS tokens (`FILE_DOWNLOAD_SAS_EXPIRE_MINUTES`)
-- Admin APIs are restricted to OWNER and ADMIN org members
+- Admin APIs are restricted to OWNER/ADMIN members of **COMPANY** organizations only
+- PERSONAL organizations block all admin API access with a 403 response
+- PERSONAL organizations cannot have members added via the public API
+- PERSONAL organizations are created internally — public clients cannot specify `type=PERSONAL`
 - All sensitive metadata (passwords, tokens, connection strings) is sanitized before audit log storage
 - Password hashes are never returned in API responses
 - JWT secrets must be strong and random in staging/production
@@ -295,7 +383,7 @@ Default `pytest` run does **not** require:
 |---|---|
 | `users` | User accounts |
 | `refresh_tokens` | JWT refresh token records |
-| `organizations` | Organizations (tenants) |
+| `organizations` | Organizations (tenants) — `type` column: PERSONAL \| COMPANY |
 | `organization_members` | Org membership + roles |
 | `workspaces` | Workspaces within an org |
 | `workspace_members` | Workspace membership + roles |
@@ -329,11 +417,33 @@ If Redis is unavailable, `enqueue_job()` logs a warning and continues — upload
 
 ---
 
-## MVP 1 Limitations
+## Personal Mode — Legacy User Repair
+
+For users created before MVP 1.1 (who don't have a personal org/workspace), the system repairs automatically:
+
+1. User calls `GET /api/v1/me/personal-context`
+2. `ensure_personal_context()` detects missing personal org/workspace
+3. Creates them idempotently within the current request transaction
+4. Returns the complete context
+
+No manual backfill script is required for existing users.
+
+---
+
+## MVP 1.1 Limitations
+
+- Personal org is not hidden from `GET /organizations/me` — frontend must filter by `type`
+- Adding members to PERSONAL orgs is blocked — designed for single-owner use
+- Admin APIs block PERSONAL orgs entirely — business features are COMPANY-only
+- No auto-creation of personal chat — frontend creates the first chat under `personal_workspace.id`
+- Personal org workspace is named "Personal Chat" and cannot currently be renamed via the API
+
+---
+
+## MVP 1 / 1.1 Limitations
 
 - No RAG / vector search / embeddings
 - No document text extraction (placeholder only)
-- No personal user auto-workspace
 - No production deployment config (Docker, nginx, k8s)
 - No WebSocket presence
 - No billing or usage limits enforcement
@@ -343,11 +453,10 @@ If Redis is unavailable, `enqueue_job()` logs a warning and continues — upload
 
 ## Recommended Next Steps (MVP 1.5+)
 
-1. Personal user mode — auto-create personal org + workspace on register
-2. File text extraction pipeline (pypdf, python-docx)
-3. Embeddings + pgvector RAG
-4. Advanced admin analytics dashboard
-5. Production deployment (Docker Compose → Kubernetes)
-6. More LLM providers (Gemini, Mistral, local Ollama)
-7. Organization settings and branding
-8. Frontend integration
+1. File text extraction pipeline (pypdf, python-docx)
+2. Embeddings + pgvector RAG
+3. Advanced admin analytics dashboard
+4. Production deployment (Docker Compose → Kubernetes)
+5. More LLM providers (Gemini, Mistral, local Ollama)
+6. Organization settings and branding
+7. Frontend integration

@@ -10,6 +10,7 @@ from app.modules.organizations.model import (
     OrgRole,
     Organization,
     OrganizationMember,
+    OrganizationType,
 )
 from app.modules.users.model import User
 
@@ -24,11 +25,24 @@ def create_organization(
     name: str,
     slug: str,
     owner_id: UUID,
+    org_type: OrganizationType = OrganizationType.COMPANY,
 ) -> Organization:
-    org = Organization(name=name, slug=slug, owner_id=owner_id)
+    org = Organization(name=name, slug=slug, owner_id=owner_id, type=org_type.value)
     db.add(org)
     db.flush()
     return org
+
+
+def get_personal_organization_by_owner(
+    db: Session, owner_id: UUID
+) -> Organization | None:
+    """Return the active PERSONAL organization for this owner, or None."""
+    return db.scalar(
+        select(Organization)
+        .where(Organization.owner_id == owner_id)
+        .where(Organization.type == OrganizationType.PERSONAL.value)
+        .where(Organization.is_active.is_(True))
+    )
 
 
 def get_organization_by_id(db: Session, org_id: UUID) -> Organization | None:

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import EmailStr, Field, field_validator
 
-from app.modules.organizations.model import OrgMemberStatus, OrgRole
+from app.modules.organizations.model import OrgMemberStatus, OrgRole, OrganizationType
 from app.schemas.base import AppSchema
 
 
@@ -22,6 +22,8 @@ class OrganizationCreate(AppSchema):
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
         description="URL-safe lowercase slug. Auto-generated from name if omitted.",
     )
+    # type is intentionally NOT exposed — public API always creates COMPANY orgs.
+    # PERSONAL orgs are created internally by the registration/onboarding service only.
 
 
 class OrganizationRead(AppSchema):
@@ -29,6 +31,7 @@ class OrganizationRead(AppSchema):
     name: str
     slug: str
     owner_id: UUID
+    type: OrganizationType
     is_active: bool
     created_at: datetime
     updated_at: datetime

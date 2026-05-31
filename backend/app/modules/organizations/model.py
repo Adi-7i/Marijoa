@@ -3,10 +3,17 @@ from __future__ import annotations
 from enum import Enum
 from uuid import UUID
 
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+
+
+class OrganizationType(str, Enum):
+    """Whether an organization is a personal workspace or a company/team tenant."""
+
+    PERSONAL = "PERSONAL"
+    COMPANY = "COMPANY"
 
 
 class OrgRole(str, Enum):
@@ -47,6 +54,14 @@ class Organization(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         index=True,
     )
 
+    # OrganizationType.value stored as string; PERSONAL is auto-created on registration.
+    type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default=OrganizationType.COMPANY.value,
+        server_default=OrganizationType.COMPANY.value,
+    )
+
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -54,8 +69,13 @@ class Organization(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         server_default="true",
     )
 
+    __table_args__ = (
+        # Composite index for personal org lookups (owner_id + type)
+        Index("ix_organizations_owner_type", "owner_id", "type"),
+    )
+
     def __repr__(self) -> str:
-        return f"<Organization slug={self.slug!r} name={self.name!r}>"
+        return f"<Organization slug={self.slug!r} name={self.name!r} type={self.type!r}>"
 
 
 class OrganizationMember(Base, UUIDPrimaryKeyMixin, TimestampMixin):
