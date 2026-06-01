@@ -52,6 +52,7 @@ export interface OrganizationMember {
   avatarUrl?: string;
   role: OrganizationRole;
   status: MemberStatus;
+  joinedAt?: number;
 }
 
 export interface Chat {
@@ -101,6 +102,56 @@ export interface FileItem {
   url: string;
   uploadedAt: number;
   updatedAt?: number;
+}
+
+export type AuditAction =
+  | "USER_LOGIN"
+  | "USER_LOGOUT"
+  | "ORGANIZATION_CREATED"
+  | "ORGANIZATION_MEMBER_ADDED"
+  | "WORKSPACE_CREATED"
+  | "WORKSPACE_UPDATED"
+  | "WORKSPACE_DELETED"
+  | "CHAT_CREATED"
+  | "CHAT_UPDATED"
+  | "CHAT_DELETED"
+  | "MESSAGE_CREATED"
+  | "AI_RESPONSE_CREATED"
+  | "AI_STREAM_COMPLETED"
+  | "ARTIFACT_CREATED"
+  | "ARTIFACT_UPDATED"
+  | "ARTIFACT_DELETED"
+  | "FILE_UPLOADED"
+  | "FILE_DELETED"
+  | "ADMIN_USERS_VIEWED"
+  | "ADMIN_AUDIT_LOGS_VIEWED"
+  | "ADMIN_USAGE_VIEWED";
+
+export interface AuditLog {
+  id: string;
+  organizationId: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  userId?: string;
+  userName?: string;
+  action: AuditAction;
+  entityType: string;
+  entityId?: string;
+  ipAddress?: string;
+  metadata?: Record<string, string>;
+  createdAt: number;
+}
+
+export interface AdminUsageSummary {
+  organizationId: string;
+  usersCount: number;
+  activeUsersCount: number;
+  workspacesCount: number;
+  chatsCount: number;
+  messagesCount: number;
+  artifactsCount: number;
+  filesCount: number;
+  storageBytes: number;
 }
 
 export interface WorkspaceContext {

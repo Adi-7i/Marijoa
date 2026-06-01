@@ -112,12 +112,14 @@ describe("Sidebar", () => {
       />
     );
     expect(
-      screen.getByRole("button", { name: /admin settings/i })
+      screen.getByRole("button", { name: /organization admin dashboard/i })
     ).toBeInTheDocument();
   });
 
   it("does NOT render admin link in personal mode", () => {
     render(<Sidebar user={MOCK_USER} chats={personalChats} mode="personal" />);
-    expect(screen.queryByRole("button", { name: /admin settings/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /organization admin dashboard/i })
+    ).not.toBeInTheDocument();
   });
 });

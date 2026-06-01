@@ -26,6 +26,8 @@ interface SidebarProps {
   selectedWorkspaceId?: string | null;
   onWorkspaceChange?: (workspaceId: string) => void;
   onShowOrgOverview?: () => void;
+  onShowAdmin?: () => void;
+  isAdminActive?: boolean;
   // Chat state
   chats?: Chat[];
   selectedChatId?: string | null;
@@ -48,6 +50,8 @@ export function Sidebar({
   selectedWorkspaceId = null,
   onWorkspaceChange,
   onShowOrgOverview,
+  onShowAdmin,
+  isAdminActive = false,
   chats = [],
   selectedChatId = null,
   onChatSelect,
@@ -218,9 +222,15 @@ export function Sidebar({
         <>
           <div className={styles.sidebarDivider} role="separator" />
           <div className={styles.adminLinkWrap}>
-            <button type="button" className={styles.adminLink} aria-label="Organization admin settings">
+            <button
+              type="button"
+              className={`${styles.adminLink} ${isAdminActive ? styles.adminLinkActive : ""}`}
+              aria-label="Organization admin dashboard"
+              aria-current={isAdminActive ? "page" : undefined}
+              onClick={onShowAdmin}
+            >
               <SettingsIcon size={14} />
-              Admin Settings
+              Admin
             </button>
           </div>
         </>

@@ -794,6 +794,12 @@
   color: var(--color-text-secondary);
 }
 
+.adminLinkActive {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
 /* ─── Header context ─────────────────────────────────────────────── */
 
 .headerCenter {

@@ -12,6 +12,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { OrganizationOverview } from "@/components/organization/OrganizationOverview";
 import { WorkspaceOverview } from "@/components/organization/WorkspaceOverview";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import {
   MOCK_ORGANIZATIONS,
   MOCK_WORKSPACES,
@@ -22,6 +23,8 @@ import {
   MOCK_FILES,
   MOCK_USER,
   MOCK_WORKSPACE_CONTEXTS,
+  MOCK_ADMIN_USAGE,
+  MOCK_AUDIT_LOGS,
   adaptMessageToChat,
 } from "@/lib/mock/mock-data";
 import type { AppMode, Artifact, ArtifactType, RightPanelTab } from "@/types/marijoa";
@@ -46,6 +49,7 @@ export function AppShell() {
     "ws-personal-default"
   );
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("artifacts");
 
@@ -117,14 +121,17 @@ export function AppShell() {
   );
 
   // Content routing
-  const showOrgOverview = mode === "organization" && !selectedWorkspaceId;
-  const showWorkspaceOverview = mode === "organization" && !!selectedWorkspaceId && !selectedChatId;
-  const showChat = !showOrgOverview && !showWorkspaceOverview;
+  const showAdminDashboard = mode === "organization" && showAdmin && currentOrg?.type === "COMPANY";
+  const showOrgOverview = mode === "organization" && !showAdminDashboard && !selectedWorkspaceId;
+  const showWorkspaceOverview =
+    mode === "organization" && !showAdminDashboard && !!selectedWorkspaceId && !selectedChatId;
+  const showChat = !showAdminDashboard && !showOrgOverview && !showWorkspaceOverview;
 
   // Handlers
   const handleModeChange = useCallback((newMode: AppMode) => {
     setMode(newMode);
     setSelectedChatId(null);
+    setShowAdmin(false);
     setRightPanelOpen(false);
     setResetSignal((s) => s + 1);
     if (newMode === "personal") {
@@ -145,24 +152,35 @@ export function AppShell() {
   const handleWorkspaceChange = useCallback((workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
     setSelectedChatId(null);
+    setShowAdmin(false);
     setResetSignal((s) => s + 1);
   }, []);
 
   const handleShowOrgOverview = useCallback(() => {
     setSelectedWorkspaceId(null);
     setSelectedChatId(null);
+    setShowAdmin(false);
     setRightPanelOpen(false);
     setResetSignal((s) => s + 1);
   }, []);
 
+  const handleShowAdmin = useCallback(() => {
+    setShowAdmin(true);
+    setSelectedChatId(null);
+    setRightPanelOpen(false);
+    setDrawerOpen(false);
+  }, []);
+
   const handleChatSelect = useCallback((chatId: string) => {
     setSelectedChatId(chatId);
+    setShowAdmin(false);
     setDrawerOpen(false);
   }, []);
 
   const startNewChat = useCallback(() => {
     setResetSignal((s) => s + 1);
     setSelectedChatId(null);
+    setShowAdmin(false);
     setDrawerOpen(false);
   }, []);
 
@@ -244,6 +262,8 @@ export function AppShell() {
         selectedWorkspaceId={selectedWorkspaceId}
         onWorkspaceChange={handleWorkspaceChange}
         onShowOrgOverview={handleShowOrgOverview}
+        onShowAdmin={handleShowAdmin}
+        isAdminActive={showAdminDashboard}
         chats={currentChats}
         selectedChatId={selectedChatId}
         onChatSelect={handleChatSelect}
@@ -256,6 +276,16 @@ export function AppShell() {
         aria-label="Close sidebar"
         onClick={() => setDrawerOpen(false)}
       />
+
+      {showAdminDashboard && currentOrg && (
+        <AdminDashboard
+          org={currentOrg}
+          usage={MOCK_ADMIN_USAGE}
+          members={currentMembers}
+          auditLogs={MOCK_AUDIT_LOGS.filter((l) => l.organizationId === currentOrg.id)}
+          currentUserRole={currentOrg.role}
+        />
+      )}
 
       {showOrgOverview && currentOrg && (
         <OrganizationOverview

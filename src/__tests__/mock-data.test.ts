@@ -9,6 +9,8 @@ import {
   MOCK_FILES,
   MOCK_MEMBERS,
   MOCK_WORKSPACE_CONTEXTS,
+  MOCK_ADMIN_USAGE,
+  MOCK_AUDIT_LOGS,
   adaptMessageToChat,
 } from "@/lib/mock/mock-data";
 
@@ -72,15 +74,23 @@ describe("mock data", () => {
     }
   });
 
-  it("has 5 Cynerza members with all roles covered", () => {
+  it("has 7 Cynerza members with all roles covered", () => {
     const members = MOCK_MEMBERS.filter((m) => m.organizationId === "org-cynerza");
-    expect(members).toHaveLength(5);
+    expect(members).toHaveLength(7);
     const roles = members.map((m) => m.role);
     expect(roles).toContain("OWNER");
     expect(roles).toContain("ADMIN");
     expect(roles).toContain("MANAGER");
     expect(roles).toContain("MEMBER");
     expect(roles).toContain("VIEWER");
+  });
+
+  it("Cynerza members include suspended and invited statuses", () => {
+    const members = MOCK_MEMBERS.filter((m) => m.organizationId === "org-cynerza");
+    const statuses = members.map((m) => m.status);
+    expect(statuses).toContain("ACTIVE");
+    expect(statuses).toContain("INVITED");
+    expect(statuses).toContain("SUSPENDED");
   });
 
   it("all members have required fields", () => {
@@ -159,6 +169,39 @@ describe("mock data", () => {
       expect(typeof ctx.stats.files).toBe("number");
       expect(typeof ctx.stats.artifacts).toBe("number");
       expect(typeof ctx.stats.members).toBe("number");
+    }
+  });
+
+  it("admin usage summary has all required counters", () => {
+    expect(MOCK_ADMIN_USAGE.organizationId).toBe("org-cynerza");
+    expect(typeof MOCK_ADMIN_USAGE.usersCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.activeUsersCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.workspacesCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.chatsCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.messagesCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.artifactsCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.filesCount).toBe("number");
+    expect(typeof MOCK_ADMIN_USAGE.storageBytes).toBe("number");
+    expect(MOCK_ADMIN_USAGE.storageBytes).toBeGreaterThan(0);
+  });
+
+  it("audit logs include required action types", () => {
+    const actions = MOCK_AUDIT_LOGS.map((l) => l.action);
+    expect(actions).toContain("USER_LOGIN");
+    expect(actions).toContain("WORKSPACE_CREATED");
+    expect(actions).toContain("CHAT_CREATED");
+    expect(actions).toContain("AI_RESPONSE_CREATED");
+    expect(actions).toContain("ARTIFACT_CREATED");
+    expect(actions).toContain("FILE_UPLOADED");
+    expect(actions).toContain("ADMIN_USAGE_VIEWED");
+  });
+
+  it("all audit logs belong to a known organization", () => {
+    const orgIds = new Set(MOCK_ORGANIZATIONS.map((o) => o.id));
+    for (const log of MOCK_AUDIT_LOGS) {
+      expect(orgIds.has(log.organizationId)).toBe(true);
+      expect(typeof log.createdAt).toBe("number");
+      expect(log.entityType).toBeTruthy();
     }
   });
 });

@@ -200,3 +200,23 @@ export function TableIcon({ size = 16, ...props }: IconProps) {
 export function BarChartIcon({ size = 16, ...props }: IconProps) {
   return <svg {...baseProps(size, props)}><line x1="12" x2="12" y1="20" y2="10" /><line x1="18" x2="18" y1="20" y2="4" /><line x1="6" x2="6" y1="20" y2="16" /></svg>;
 }
+
+export function ActivityIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>;
+}
+
+export function FilterIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
+}
+
+export function BanIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg>;
+}
+
+export function AlertTriangleIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>;
+}
+
+export function UserXIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="17" x2="22" y1="8" y2="13" /><line x1="22" x2="17" y1="8" y2="13" /></svg>;
+}
