@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import type { FileItem } from "@/types/marijoa";
 import { formatBytes, formatRelative } from "@/lib/format";
 import { DownloadIcon, EyeIcon, Trash2Icon } from "@/components/chat/icons";
+import { showMockNotice } from "@/lib/toast";
 import { FileTypeBadge } from "./FileTypeBadge";
 import styles from "./files.module.css";
 
@@ -20,14 +20,6 @@ interface FileCardProps {
 }
 
 export function FileCard({ file, onDelete }: FileCardProps) {
-  const [showNotice, setShowNotice] = useState(false);
-
-  function mockAction(msg: string) {
-    setShowNotice(true);
-    setTimeout(() => setShowNotice(false), 2500);
-    console.info("[mock]", msg);
-  }
-
   const statusClass = file.status ? (STATUS_CLASS[file.status] ?? "") : "";
 
   return (
@@ -42,11 +34,6 @@ export function FileCard({ file, onDelete }: FileCardProps) {
           )}
           <span className={styles.cardMetaText}>{formatRelative(file.uploadedAt)}</span>
         </div>
-        {showNotice && (
-          <p className={styles.uploadNotice}>
-            File actions will connect to the backend in the integration phase.
-          </p>
-        )}
       </div>
       <div className={styles.cardActions}>
         <button
@@ -54,7 +41,7 @@ export function FileCard({ file, onDelete }: FileCardProps) {
           className={styles.cardAction}
           aria-label="View file"
           title="View"
-          onClick={() => mockAction("view")}
+          onClick={() => showMockNotice("File preview will connect to the backend in the integration phase.")}
         >
           <EyeIcon size={13} />
         </button>
@@ -63,7 +50,7 @@ export function FileCard({ file, onDelete }: FileCardProps) {
           className={styles.cardAction}
           aria-label="Download file"
           title="Download"
-          onClick={() => mockAction("download")}
+          onClick={() => showMockNotice("File download will connect to the backend in the integration phase.")}
         >
           <DownloadIcon size={13} />
         </button>

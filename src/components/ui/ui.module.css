@@ -1,0 +1,330 @@
+/* ─── Shared UI primitives ─────────────────────────────────────── */
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0 12px;
+  height: 32px;
+  white-space: nowrap;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease,
+    box-shadow 120ms ease, transform 120ms ease, opacity 120ms ease;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--color-text-primary);
+  color: #ffffff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #000000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.btnSecondary {
+  background: #ffffff;
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: #fafafa;
+  border-color: #d0d0d0;
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+}
+
+.btnDanger {
+  background: #ffffff;
+  border-color: var(--color-border);
+  color: #b91c1c;
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f3c4c4;
+}
+
+.btnSm {
+  height: 26px;
+  font-size: 12px;
+  padding: 0 9px;
+  border-radius: 6px;
+}
+
+.btnLg {
+  height: 38px;
+  font-size: 14px;
+  padding: 0 16px;
+  border-radius: 10px;
+}
+
+/* Card */
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.cardInteractive {
+  cursor: pointer;
+}
+
+.cardInteractive:hover {
+  border-color: #d0d0d0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.cardPadLg {
+  padding: 18px;
+}
+
+.cardPadSm {
+  padding: 10px;
+}
+
+/* Empty state */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  animation: emptyFadeIn 220ms ease both;
+}
+
+.emptyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.emptyTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.1px;
+}
+
+.emptyDesc {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.emptyAction {
+  margin-top: 6px;
+}
+
+/* Skeleton */
+.skeleton {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    #eeeeee 0%,
+    #f5f5f5 50%,
+    #eeeeee 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonText {
+  height: 12px;
+}
+
+.skeletonLine {
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.skeletonCircle {
+  border-radius: 50%;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-text-primary);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spinnerRotate 720ms linear infinite;
+}
+
+.spinnerLg {
+  width: 22px;
+  height: 22px;
+  border-width: 2.5px;
+}
+
+/* Toast / Notice */
+.toastRegion {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 92vw;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+  max-width: 440px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--color-text-primary);
+  padding: 10px 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: auto;
+  animation: toastIn 220ms ease both;
+}
+
+.toastInfo {
+  border-left: 3px solid #525252;
+}
+
+.toastSuccess {
+  border-left: 3px solid #16a34a;
+}
+
+.toastError {
+  border-left: 3px solid #dc2626;
+}
+
+.toastMessage {
+  flex: 1;
+  min-width: 0;
+}
+
+.toastClose {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.toastClose:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+}
+
+/* Inline notice (non-toast) */
+.inlineNotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: #f7f7f8;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  padding: 8px 12px;
+  animation: emptyFadeIn 180ms ease both;
+}
+
+.inlineNoticeInfo {
+  background: #f4f7fc;
+  border-color: #dfe6f1;
+  color: #2c4a73;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  width: 100%;
+  opacity: 0.7;
+}
+
+.dividerVertical {
+  width: 1px;
+  height: 100%;
+  background: var(--color-border);
+  opacity: 0.7;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes spinnerRotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes emptyFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .spinner,
+  .toast,
+  .emptyState,
+  .inlineNotice {
+    animation: none;
+  }
+}

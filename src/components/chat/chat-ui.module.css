@@ -848,6 +848,12 @@
   padding: 8px 12px;
 }
 
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+}
+
 @media (max-width: 768px) {
   .appShell {
     display: block;
@@ -859,6 +865,7 @@
     top: 0;
     width: min(86vw, 320px);
     transform: translateX(-101%);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   }
 
   .sidebarOpen {

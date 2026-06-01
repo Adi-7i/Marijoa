@@ -211,8 +211,17 @@ export function Sidebar({
             onSelect={onChatSelect}
           />
         ) : (
-          <p style={{ padding: "8px 12px", fontSize: "12.5px", color: "var(--color-text-muted)" }}>
-            {searchQuery ? "No chats match your search." : "No chats yet. Start one above!"}
+          <p
+            style={{
+              padding: "10px 12px",
+              fontSize: "12px",
+              color: "var(--color-text-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            {searchQuery
+              ? "No chats match your search."
+              : "No chats yet. Start a new one above."}
           </p>
         )}
       </div>
