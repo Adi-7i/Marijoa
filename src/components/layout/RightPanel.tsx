@@ -1,9 +1,10 @@
 "use client";
 
 import type React from "react";
-import type { RightPanelTab, Artifact, FileItem } from "@/types/marijoa";
+import type { Artifact, FileItem, Organization, Workspace, WorkspaceContext, RightPanelTab } from "@/types/marijoa";
 import { ArtifactPanel } from "@/components/artifacts/ArtifactPanel";
 import { FilePanel } from "@/components/files/FilePanel";
+import { WorkspaceContextPanel } from "@/components/workspace/WorkspaceContextPanel";
 import { BoxIcon, FileTextIcon, InfoIcon, XIcon } from "@/components/chat/icons";
 import styles from "./panel.module.css";
 
@@ -17,12 +18,15 @@ interface RightPanelProps {
   files: FileItem[];
   workspaceName?: string;
   orgName?: string;
+  workspace?: Workspace;
+  org?: Organization;
+  context?: WorkspaceContext;
 }
 
 const TABS: { id: RightPanelTab; label: string; Icon: TabIcon }[] = [
   { id: "artifacts", label: "Artifacts", Icon: BoxIcon },
-  { id: "files", label: "Files", Icon: FileTextIcon },
-  { id: "context", label: "Context", Icon: InfoIcon },
+  { id: "files",     label: "Files",     Icon: FileTextIcon },
+  { id: "context",   label: "Context",   Icon: InfoIcon },
 ];
 
 export function RightPanel({
@@ -31,8 +35,9 @@ export function RightPanel({
   onClose,
   artifacts,
   files,
-  workspaceName,
-  orgName,
+  workspace,
+  org,
+  context,
 }: RightPanelProps) {
   return (
     <aside className={styles.rightPanel} aria-label="Workspace panel">
@@ -64,29 +69,15 @@ export function RightPanel({
 
       <div className={styles.rightPanelBody} role="tabpanel">
         {tab === "artifacts" && <ArtifactPanel artifacts={artifacts} />}
-        {tab === "files" && <FilePanel files={files} />}
-        {tab === "context" && (
-          <div className={styles.contextSection}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionTitle}>Workspace Info</span>
-            </div>
-            {workspaceName && (
-              <div className={styles.contextRow}>
-                <span className={styles.contextLabel}>Workspace</span>
-                <span className={styles.contextValue}>{workspaceName}</span>
-              </div>
-            )}
-            {orgName && (
-              <div className={styles.contextRow}>
-                <span className={styles.contextLabel}>Organization</span>
-                <span className={styles.contextValue}>{orgName}</span>
-              </div>
-            )}
-            <div className={styles.contextRow}>
-              <span className={styles.contextLabel}>Model</span>
-              <span className={styles.contextValue}>Backend AI Gateway (pending integration)</span>
-            </div>
-          </div>
+        {tab === "files"     && <FilePanel files={files} />}
+        {tab === "context"   && (
+          <WorkspaceContextPanel
+            workspace={workspace}
+            org={org}
+            context={context}
+            artifacts={artifacts}
+            files={files}
+          />
         )}
       </div>
     </aside>

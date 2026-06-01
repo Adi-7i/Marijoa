@@ -152,3 +152,51 @@ export function MessageSquareIcon({ size = 16, ...props }: IconProps) {
 export function CheckCircleIcon({ size = 16, ...props }: IconProps) {
   return <svg {...baseProps(size, props)}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>;
 }
+
+export function BookmarkIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>;
+}
+
+export function MailIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>;
+}
+
+export function ZapIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" /></svg>;
+}
+
+export function PencilIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>;
+}
+
+export function Trash2Icon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>;
+}
+
+export function EyeIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>;
+}
+
+export function DownloadIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>;
+}
+
+export function ClockIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
+}
+
+export function FileIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /></svg>;
+}
+
+export function ImageIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>;
+}
+
+export function TableIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M12 3v18" /><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M3 15h18" /></svg>;
+}
+
+export function BarChartIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><line x1="12" x2="12" y1="20" y2="10" /><line x1="18" x2="18" y1="20" y2="4" /><line x1="6" x2="6" y1="20" y2="16" /></svg>;
+}

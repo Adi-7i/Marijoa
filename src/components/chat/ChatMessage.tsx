@@ -4,6 +4,7 @@ import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import styles from "@/components/chat/chat-ui.module.css";
 import {
+  BookmarkIcon,
   CheckIcon,
   ChevronIcon,
   CopyIcon,
@@ -15,6 +16,7 @@ import {
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  onSaveRequest?: (message: ChatMessageType) => void;
 }
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
@@ -74,7 +76,7 @@ function MarkdownText({ content, isStreaming }: { content: string; isStreaming?:
   );
 }
 
-function ChatMessageComponent({ message }: ChatMessageProps) {
+function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
   const [thoughtsOpen, setThoughtsOpen] = useState(Boolean(message.isStreaming));
   const [copied, setCopied] = useState(false);
 
@@ -126,6 +128,17 @@ function ChatMessageComponent({ message }: ChatMessageProps) {
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
           </button>
+          {onSaveRequest && (
+            <button
+              type="button"
+              className={styles.messageAction}
+              aria-label="Save as artifact"
+              title="Save as artifact"
+              onClick={() => onSaveRequest(message)}
+            >
+              <BookmarkIcon size={14} />
+            </button>
+          )}
           <button type="button" className={styles.messageAction} aria-label="Good response">
             <ThumbsUpIcon />
           </button>

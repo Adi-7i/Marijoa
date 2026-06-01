@@ -21,13 +21,17 @@ import {
   MOCK_ARTIFACTS,
   MOCK_FILES,
   MOCK_USER,
+  MOCK_WORKSPACE_CONTEXTS,
   adaptMessageToChat,
 } from "@/lib/mock/mock-data";
-import type { AppMode, RightPanelTab } from "@/types/marijoa";
+import type { AppMode, Artifact, ArtifactType, RightPanelTab } from "@/types/marijoa";
 import styles from "@/components/chat/chat-ui.module.css";
 
 const MIN_SIDEBAR_WIDTH = 180;
 const MAX_SIDEBAR_WIDTH = 320;
+
+// Fixed base timestamp for newly created artifact IDs (avoids hydration issues)
+const BASE_TS = 1748736000000;
 
 export function AppShell() {
   // Layout state
@@ -44,6 +48,11 @@ export function AppShell() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("artifacts");
+
+  // Locally created artifacts (from Save as Artifact)
+  const [localArtifacts, setLocalArtifacts] = useState<Artifact[]>([]);
+  // Counter for stable IDs on saved artifacts
+  const [artifactCounter, setArtifactCounter] = useState(0);
 
   // Derived data
   const currentOrg = useMemo(
@@ -82,13 +91,12 @@ export function AppShell() {
     [selectedChatId]
   );
 
-  const currentArtifacts = useMemo(
-    () =>
-      selectedWorkspaceId
-        ? MOCK_ARTIFACTS.filter((a) => a.workspaceId === selectedWorkspaceId)
-        : [],
-    [selectedWorkspaceId]
-  );
+  const currentArtifacts = useMemo(() => {
+    if (!selectedWorkspaceId) return [];
+    const mock = MOCK_ARTIFACTS.filter((a) => a.workspaceId === selectedWorkspaceId);
+    const local = localArtifacts.filter((a) => a.workspaceId === selectedWorkspaceId);
+    return [...mock, ...local];
+  }, [selectedWorkspaceId, localArtifacts]);
 
   const currentFiles = useMemo(
     () =>
@@ -101,6 +109,11 @@ export function AppShell() {
   const currentMembers = useMemo(
     () => MOCK_MEMBERS.filter((m) => m.organizationId === selectedOrgId),
     [selectedOrgId]
+  );
+
+  const currentContext = useMemo(
+    () => MOCK_WORKSPACE_CONTEXTS.find((c) => c.workspaceId === selectedWorkspaceId),
+    [selectedWorkspaceId]
   );
 
   // Content routing
@@ -124,7 +137,7 @@ export function AppShell() {
       const companyOrg = MOCK_ORGANIZATIONS.find((o) => o.type === "COMPANY");
       if (companyOrg) {
         setSelectedOrgId(companyOrg.id);
-        setSelectedWorkspaceId(null); // show org overview first
+        setSelectedWorkspaceId(null);
       }
     }
   }, []);
@@ -152,6 +165,32 @@ export function AppShell() {
     setSelectedChatId(null);
     setDrawerOpen(false);
   }, []);
+
+  const handleSaveAsArtifact = useCallback(
+    (title: string, type: ArtifactType, content: string) => {
+      if (!selectedWorkspaceId) return;
+      setArtifactCounter((c) => {
+        const newArtifact: Artifact = {
+          id: `artifact-local-${BASE_TS}-${c}`,
+          workspaceId: selectedWorkspaceId,
+          chatId: selectedChatId ?? undefined,
+          createdBy: MOCK_USER.id,
+          title,
+          type,
+          content,
+          version: 1,
+          isActive: true,
+          createdAt: BASE_TS,
+          updatedAt: BASE_TS,
+        };
+        setLocalArtifacts((prev) => [...prev, newArtifact]);
+        setRightPanelOpen(true);
+        setRightPanelTab("artifacts");
+        return c + 1;
+      });
+    },
+    [selectedWorkspaceId, selectedChatId]
+  );
 
   const handleResizeStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -218,7 +257,6 @@ export function AppShell() {
         onClick={() => setDrawerOpen(false)}
       />
 
-      {/* Organization overview — org mode, no workspace selected */}
       {showOrgOverview && currentOrg && (
         <OrganizationOverview
           org={currentOrg}
@@ -228,7 +266,6 @@ export function AppShell() {
         />
       )}
 
-      {/* Workspace overview — org mode, workspace selected, no chat */}
       {showWorkspaceOverview && currentWorkspace && currentOrg && (
         <WorkspaceOverview
           workspace={currentWorkspace}
@@ -240,7 +277,6 @@ export function AppShell() {
         />
       )}
 
-      {/* Chat panel — personal mode or a chat is selected */}
       {showChat && (
         <MainChatPanel
           resetSignal={resetSignal}
@@ -253,6 +289,7 @@ export function AppShell() {
           mode={mode}
           rightPanelOpen={rightPanelOpen}
           onToggleRightPanel={() => setRightPanelOpen((o) => !o)}
+          onSaveAsArtifact={handleSaveAsArtifact}
         />
       )}
 
@@ -263,8 +300,9 @@ export function AppShell() {
           onClose={() => setRightPanelOpen(false)}
           artifacts={currentArtifacts}
           files={currentFiles}
-          workspaceName={currentWorkspace?.name}
-          orgName={currentOrg?.name}
+          workspace={currentWorkspace}
+          org={currentOrg}
+          context={currentContext}
         />
       )}
     </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { useChat } from "@/hooks/useChat";
 import type { ChatMessage } from "@/types/chat";
-import type { AppMode } from "@/types/marijoa";
+import type { AppMode, ArtifactType } from "@/types/marijoa";
 import styles from "@/components/chat/chat-ui.module.css";
 
 interface MainChatPanelProps {
@@ -19,6 +19,7 @@ interface MainChatPanelProps {
   mode?: AppMode;
   rightPanelOpen?: boolean;
   onToggleRightPanel?: () => void;
+  onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
 }
 
 export function MainChatPanel({
@@ -32,12 +33,12 @@ export function MainChatPanel({
   orgName,
   rightPanelOpen = false,
   onToggleRightPanel,
+  onSaveAsArtifact,
 }: MainChatPanelProps) {
   const { visibleMessages, isThinking, sendMessage, reset, resetTo } = useChat();
   const lastResetSignal = useRef(resetSignal);
   const lastChatId = useRef(selectedChatId);
 
-  // Handle explicit reset signal (new chat button, mode switch, workspace switch)
   useEffect(() => {
     if (resetSignal !== lastResetSignal.current) {
       lastResetSignal.current = resetSignal;
@@ -45,7 +46,6 @@ export function MainChatPanel({
     }
   }, [reset, resetSignal]);
 
-  // Handle chat selection changes — load initial messages for the selected chat
   useEffect(() => {
     if (selectedChatId !== lastChatId.current) {
       lastChatId.current = selectedChatId;
@@ -72,6 +72,7 @@ export function MainChatPanel({
         contextSubtitle={contextSubtitle}
         rightPanelOpen={rightPanelOpen}
         onToggleRightPanel={onToggleRightPanel}
+        onSaveAsArtifact={onSaveAsArtifact}
       />
     </main>
   );

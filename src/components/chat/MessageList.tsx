@@ -6,9 +6,10 @@ import styles from "@/components/chat/chat-ui.module.css";
 interface MessageListProps {
   messages: ChatMessageType[];
   virtualOffset?: number;
+  onSaveRequest?: (message: ChatMessageType) => void;
 }
 
-export function MessageList({ messages, virtualOffset = 0 }: MessageListProps) {
+export function MessageList({ messages, virtualOffset = 0, onSaveRequest }: MessageListProps) {
   if (messages.length === 0) return null;
 
   return (
@@ -20,7 +21,7 @@ export function MessageList({ messages, virtualOffset = 0 }: MessageListProps) {
       style={{ "--virtual-offset": `${virtualOffset}px` } as CSSProperties}
     >
       {messages.map((message) => (
-        <ChatMessage key={message.id} message={message} />
+        <ChatMessage key={message.id} message={message} onSaveRequest={onSaveRequest} />
       ))}
     </div>
   );

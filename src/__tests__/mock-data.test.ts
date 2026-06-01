@@ -8,6 +8,7 @@ import {
   MOCK_ARTIFACTS,
   MOCK_FILES,
   MOCK_MEMBERS,
+  MOCK_WORKSPACE_CONTEXTS,
   adaptMessageToChat,
 } from "@/lib/mock/mock-data";
 
@@ -119,6 +120,45 @@ describe("mock data", () => {
     const wsIds = new Set(MOCK_WORKSPACES.map((w) => w.id));
     for (const file of MOCK_FILES) {
       expect(wsIds.has(file.workspaceId)).toBe(true);
+    }
+  });
+
+  it("artifacts have extended type fields", () => {
+    const sales = MOCK_ARTIFACTS.filter((a) => a.workspaceId === "ws-cynerza-sales");
+    const types = sales.map((a) => a.type);
+    expect(types).toContain("email");
+    expect(types).toContain("prompt");
+  });
+
+  it("artifacts include proposal and document types for Cynerza workspaces", () => {
+    const types = MOCK_ARTIFACTS.map((a) => a.type);
+    expect(types).toContain("proposal");
+    expect(types).toContain("document");
+    expect(types).toContain("code");
+    expect(types).toContain("note");
+  });
+
+  it("files have status field", () => {
+    for (const file of MOCK_FILES) {
+      expect(file.status).toBeDefined();
+    }
+  });
+
+  it("has workspace contexts for all workspaces", () => {
+    const wsIds = MOCK_WORKSPACES.map((w) => w.id);
+    for (const wsId of wsIds) {
+      const ctx = MOCK_WORKSPACE_CONTEXTS.find((c) => c.workspaceId === wsId);
+      expect(ctx).toBeDefined();
+    }
+  });
+
+  it("workspace contexts have required stats fields", () => {
+    for (const ctx of MOCK_WORKSPACE_CONTEXTS) {
+      expect(ctx.stats).toBeDefined();
+      expect(typeof ctx.stats.chats).toBe("number");
+      expect(typeof ctx.stats.files).toBe("number");
+      expect(typeof ctx.stats.artifacts).toBe("number");
+      expect(typeof ctx.stats.members).toBe("number");
     }
   });
 });

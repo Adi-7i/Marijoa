@@ -6,6 +6,8 @@ export type OrganizationType = "PERSONAL" | "COMPANY";
 export type OrganizationRole = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
 export type MemberStatus = "ACTIVE" | "INVITED" | "SUSPENDED" | "REMOVED";
 export type MessageRole = "user" | "assistant" | "system" | "tool";
+export type ArtifactType = "code" | "document" | "chart" | "table" | "prompt" | "email" | "proposal" | "note";
+export type FileStatus = "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
 
 export interface User {
   id: string;
@@ -74,20 +76,41 @@ export interface Artifact {
   id: string;
   workspaceId: string;
   chatId?: string;
-  type: "code" | "document" | "chart" | "table";
+  createdBy?: string;
   title: string;
+  type: ArtifactType;
   language?: string;
   content: string;
+  version?: number;
+  isActive?: boolean;
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface FileItem {
   id: string;
   workspaceId: string;
   chatId?: string;
+  uploadedBy?: string;
   name: string;
+  originalFilename?: string;
+  mimeType?: string;
   type: string;
   sizeBytes: number;
+  status?: FileStatus;
   url: string;
   uploadedAt: number;
+  updatedAt?: number;
+}
+
+export interface WorkspaceContext {
+  workspaceId: string;
+  summary?: string;
+  recentActivity?: string;
+  stats: {
+    chats: number;
+    files: number;
+    artifacts: number;
+    members: number;
+  };
 }
