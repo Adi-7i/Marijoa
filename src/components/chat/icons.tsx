@@ -88,3 +88,43 @@ export function ArrowUpIcon({ size = 16, ...props }: IconProps) {
 export function ArrowDownIcon({ size = 16, ...props }: IconProps) {
   return <svg {...baseProps(size, props)}><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></svg>;
 }
+
+export function PersonIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>;
+}
+
+export function BuildingIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><rect x="4" y="2" width="16" height="20" rx="1" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" /></svg>;
+}
+
+export function LayersIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9A1 1 0 0 0 21.4 6.1Z" /><path d="m6.08 9.5-3.5 1.6a1 1 0 0 0 0 1.81l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9a1 1 0 0 0 0-1.83l-3.5-1.6" /><path d="m6.08 14.5-3.5 1.6a1 1 0 0 0 0 1.81l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9a1 1 0 0 0 0-1.83l-3.5-1.6" /></svg>;
+}
+
+export function BoxIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>;
+}
+
+export function FileTextIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>;
+}
+
+export function InfoIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>;
+}
+
+export function SettingsIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>;
+}
+
+export function XIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>;
+}
+
+export function PanelRightIcon({ size = 20, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>;
+}
+
+export function UploadIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>;
+}

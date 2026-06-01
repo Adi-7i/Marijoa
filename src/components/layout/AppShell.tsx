@@ -1,41 +1,162 @@
 "use client";
 
-import { useCallback, useEffect, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { MainChatPanel } from "@/components/layout/MainChatPanel";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { RightPanel } from "@/components/layout/RightPanel";
+import {
+  MOCK_ORGANIZATIONS,
+  MOCK_WORKSPACES,
+  MOCK_CHATS,
+  MOCK_MESSAGES,
+  MOCK_ARTIFACTS,
+  MOCK_FILES,
+  MOCK_USER,
+  adaptMessageToChat,
+} from "@/lib/mock/mock-data";
+import type { AppMode, RightPanelTab } from "@/types/marijoa";
 import styles from "@/components/chat/chat-ui.module.css";
 
 const MIN_SIDEBAR_WIDTH = 180;
 const MAX_SIDEBAR_WIDTH = 320;
 
 export function AppShell() {
+  // Layout state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [resetSignal, setResetSignal] = useState(0);
 
-  const startNewChat = useCallback(() => {
-    setResetSignal((signal) => signal + 1);
+  // App state
+  const [mode, setMode] = useState<AppMode>("personal");
+  const [selectedOrgId, setSelectedOrgId] = useState("org-personal");
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
+    "ws-personal-default"
+  );
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("artifacts");
+
+  // Derived data
+  const currentOrg = useMemo(
+    () => MOCK_ORGANIZATIONS.find((o) => o.id === selectedOrgId),
+    [selectedOrgId]
+  );
+
+  const currentWorkspaces = useMemo(
+    () => MOCK_WORKSPACES.filter((w) => w.organizationId === selectedOrgId),
+    [selectedOrgId]
+  );
+
+  const currentWorkspace = useMemo(
+    () => currentWorkspaces.find((w) => w.id === selectedWorkspaceId),
+    [currentWorkspaces, selectedWorkspaceId]
+  );
+
+  const currentChats = useMemo(
+    () =>
+      selectedWorkspaceId
+        ? MOCK_CHATS.filter((c) => c.workspaceId === selectedWorkspaceId)
+        : MOCK_CHATS.filter((c) => c.organizationId === selectedOrgId),
+    [selectedOrgId, selectedWorkspaceId]
+  );
+
+  const selectedChat = useMemo(
+    () => currentChats.find((c) => c.id === selectedChatId),
+    [currentChats, selectedChatId]
+  );
+
+  const initialMessages = useMemo(
+    () =>
+      selectedChatId
+        ? MOCK_MESSAGES.filter((m) => m.chatId === selectedChatId).map(adaptMessageToChat)
+        : [],
+    [selectedChatId]
+  );
+
+  const currentArtifacts = useMemo(
+    () =>
+      selectedWorkspaceId
+        ? MOCK_ARTIFACTS.filter((a) => a.workspaceId === selectedWorkspaceId)
+        : [],
+    [selectedWorkspaceId]
+  );
+
+  const currentFiles = useMemo(
+    () =>
+      selectedWorkspaceId
+        ? MOCK_FILES.filter((f) => f.workspaceId === selectedWorkspaceId)
+        : [],
+    [selectedWorkspaceId]
+  );
+
+  // Handlers
+  const handleModeChange = useCallback((newMode: AppMode) => {
+    setMode(newMode);
+    setSelectedChatId(null);
+    setResetSignal((s) => s + 1);
+    if (newMode === "personal") {
+      setSelectedOrgId("org-personal");
+      const ws = MOCK_WORKSPACES.find(
+        (w) => w.organizationId === "org-personal" && w.isDefault
+      );
+      setSelectedWorkspaceId(ws?.id ?? null);
+    } else {
+      const companyOrg = MOCK_ORGANIZATIONS.find((o) => o.type === "COMPANY");
+      if (companyOrg) {
+        setSelectedOrgId(companyOrg.id);
+        const ws = MOCK_WORKSPACES.find(
+          (w) => w.organizationId === companyOrg.id && w.isDefault
+        );
+        setSelectedWorkspaceId(ws?.id ?? null);
+      }
+    }
+  }, []);
+
+  const handleWorkspaceChange = useCallback((workspaceId: string) => {
+    setSelectedWorkspaceId(workspaceId);
+    setSelectedChatId(null);
+    setResetSignal((s) => s + 1);
+  }, []);
+
+  const handleChatSelect = useCallback((chatId: string) => {
+    setSelectedChatId(chatId);
     setDrawerOpen(false);
   }, []);
 
-  const handleResizeStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const startX = event.clientX;
-    const initialWidth = sidebarWidth;
+  const startNewChat = useCallback(() => {
+    setResetSignal((s) => s + 1);
+    setSelectedChatId(null);
+    setDrawerOpen(false);
+  }, []);
 
-    const handleMove = (moveEvent: PointerEvent) => {
-      const nextWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, initialWidth + moveEvent.clientX - startX));
-      setSidebarWidth(nextWidth);
-    };
+  const handleResizeStart = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const initialWidth = sidebarWidth;
 
-    const handleUp = () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-    };
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-  }, [sidebarWidth]);
+      const handleMove = (moveEvent: PointerEvent) => {
+        const next = Math.min(
+          MAX_SIDEBAR_WIDTH,
+          Math.max(MIN_SIDEBAR_WIDTH, initialWidth + moveEvent.clientX - startX)
+        );
+        setSidebarWidth(next);
+      };
+      const handleUp = () => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", handleUp);
+      };
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", handleUp);
+    },
+    [sidebarWidth]
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -46,7 +167,6 @@ export function AppShell() {
       }
       if (event.key === "Escape") setDrawerOpen(false);
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [startNewChat]);
@@ -59,14 +179,50 @@ export function AppShell() {
         onClose={() => setDrawerOpen(false)}
         width={sidebarWidth}
         onResizeStart={handleResizeStart}
+        mode={mode}
+        onModeChange={handleModeChange}
+        organizations={MOCK_ORGANIZATIONS}
+        selectedOrgId={selectedOrgId}
+        workspaces={currentWorkspaces}
+        selectedWorkspaceId={selectedWorkspaceId}
+        onWorkspaceChange={handleWorkspaceChange}
+        chats={currentChats}
+        selectedChatId={selectedChatId}
+        onChatSelect={handleChatSelect}
+        user={MOCK_USER}
       />
+
       <button
         type="button"
         className={`${styles.backdrop} ${drawerOpen ? styles.backdropOpen : ""}`}
         aria-label="Close sidebar"
         onClick={() => setDrawerOpen(false)}
       />
-      <MainChatPanel resetSignal={resetSignal} onOpenSidebar={() => setDrawerOpen(true)} />
+
+      <MainChatPanel
+        resetSignal={resetSignal}
+        onOpenSidebar={() => setDrawerOpen(true)}
+        selectedChatId={selectedChatId}
+        initialMessages={initialMessages}
+        chatTitle={selectedChat?.title}
+        workspaceName={currentWorkspace?.name}
+        orgName={currentOrg?.name}
+        mode={mode}
+        rightPanelOpen={rightPanelOpen}
+        onToggleRightPanel={() => setRightPanelOpen((o) => !o)}
+      />
+
+      {rightPanelOpen && (
+        <RightPanel
+          tab={rightPanelTab}
+          onTabChange={setRightPanelTab}
+          onClose={() => setRightPanelOpen(false)}
+          artifacts={currentArtifacts}
+          files={currentFiles}
+          workspaceName={currentWorkspace?.name}
+          orgName={currentOrg?.name}
+        />
+      )}
     </div>
   );
 }

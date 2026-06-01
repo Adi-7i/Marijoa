@@ -14,7 +14,7 @@ import {
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import { APP_NAME, DISCLAIMER_TEXT, USER_GREETING } from "@/lib/constants";
 import styles from "@/components/chat/chat-ui.module.css";
-import { ArrowDownIcon, MarijoaMark, MenuIcon, ShareIcon } from "@/components/chat/icons";
+import { ArrowDownIcon, MarijoaMark, MenuIcon, PanelRightIcon, ShareIcon } from "@/components/chat/icons";
 import { InputBar } from "@/components/chat/InputBar";
 import { MessageList } from "@/components/chat/MessageList";
 
@@ -48,6 +48,10 @@ interface ChatAreaProps {
   onSend: (message: string) => void;
   onOpenSidebar: () => void;
   onNewChat?: () => void;
+  chatTitle?: string;
+  contextSubtitle?: string;
+  rightPanelOpen?: boolean;
+  onToggleRightPanel?: () => void;
 }
 
 const suggestions = [
@@ -56,7 +60,17 @@ const suggestions = [
   "Brainstorm product names",
 ];
 
-export function ChatArea({ messages, isThinking, onSend, onOpenSidebar, onNewChat }: ChatAreaProps) {
+export function ChatArea({
+  messages,
+  isThinking,
+  onSend,
+  onOpenSidebar,
+  onNewChat,
+  chatTitle,
+  contextSubtitle,
+  rightPanelOpen = false,
+  onToggleRightPanel,
+}: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFab, setShowFab] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
@@ -112,8 +126,24 @@ export function ChatArea({ messages, isThinking, onSend, onOpenSidebar, onNewCha
         <button type="button" className={styles.mobileMenu} aria-label="Open sidebar" onClick={onOpenSidebar}>
           <MenuIcon />
         </button>
-        <div className={styles.headerTitle}>{APP_NAME}</div>
+        <div className={styles.headerCenter}>
+          <div className={styles.headerTitle}>{chatTitle ?? APP_NAME}</div>
+          {contextSubtitle && (
+            <div className={styles.headerSubtitle}>{contextSubtitle}</div>
+          )}
+        </div>
         <div className={styles.headerRight}>
+          {onToggleRightPanel && (
+            <button
+              type="button"
+              className={styles.headerIcon}
+              aria-label={rightPanelOpen ? "Close panel" : "Open panel"}
+              aria-pressed={rightPanelOpen}
+              onClick={onToggleRightPanel}
+            >
+              <PanelRightIcon size={18} />
+            </button>
+          )}
           <button type="button" className={styles.headerIcon} aria-label="Share or export chat">
             <ShareIcon />
           </button>
@@ -141,7 +171,9 @@ export function ChatArea({ messages, isThinking, onSend, onOpenSidebar, onNewCha
           <div className={styles.emptyState}>
             <div className={styles.emptyInner}>
               <MarijoaMark className={styles.logoLarge} />
-              <h1 className={styles.emptyTitle} aria-label={USER_GREETING}>How can I help you today?</h1>
+              <h1 className={styles.emptyTitle} aria-label={USER_GREETING}>
+                How can I help you today?
+              </h1>
               <div className={styles.suggestions} aria-label="Suggested prompts">
                 {suggestions.map((suggestion) => (
                   <button

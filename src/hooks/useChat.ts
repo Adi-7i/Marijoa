@@ -38,6 +38,15 @@ export function useChat() {
     setMessages([]);
   }, [clearTimers]);
 
+  const resetTo = useCallback(
+    (newMessages: ChatMessage[]) => {
+      clearTimers();
+      setIsThinking(false);
+      setMessages(newMessages.slice(-MAX_VISIBLE_MESSAGES));
+    },
+    [clearTimers]
+  );
+
   const flushBuffer = useCallback((assistantId: string, done = false) => {
     const buffered = bufferRef.current;
     bufferRef.current = "";
@@ -120,5 +129,6 @@ export function useChat() {
     isThinking,
     sendMessage,
     reset,
+    resetTo,
   };
 }
