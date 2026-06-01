@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { Input } from "./Input";
 export type { ButtonVariant, ButtonSize } from "./Button";
 export { Card } from "./Card";
 export { EmptyState } from "./EmptyState";
