@@ -1,7 +1,7 @@
-# Marijoa
 <div align="center">
 
 # Marijoa
+
 
 **Private AI workspace for personal chat, teams, organizations, files, and enterprise AI workflows.**
 
@@ -636,6 +636,4 @@ All rights reserved. This repository and its contents are not licensed for publi
 
 <div align="center">
 
-*Built with care by the Cynerza Engineering team.*
-
-</div>
+*Built with care by the Cynerza Engineering

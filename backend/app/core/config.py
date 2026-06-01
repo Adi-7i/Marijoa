@@ -27,8 +27,20 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+psycopg://app_user:change_me@localhost:5432/Marijoa"
 
-    # Redis
+    # Redis Cloud
     REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_ENABLED: bool = True
+    REDIS_SOCKET_TIMEOUT_SECONDS: int = 5
+    REDIS_CONNECT_TIMEOUT_SECONDS: int = 5
+    REDIS_KEY_PREFIX: str = "marijoa"
+    REDIS_HEALTHCHECK_ENABLED: bool = True
+
+    # Rate limiting
+    RATE_LIMIT_ENABLED: bool = True
+    AUTH_LOGIN_RATE_LIMIT: int = 10
+    AUTH_LOGIN_RATE_WINDOW_SECONDS: int = 60
+    AI_RATE_LIMIT: int = 30
+    AI_RATE_WINDOW_SECONDS: int = 60
 
     # JWT
     JWT_SECRET_KEY: str = "change-me-in-production"
@@ -42,14 +54,64 @@ class Settings(BaseSettings):
 
     # Storage
     LOCAL_STORAGE_PATH: str = "/tmp/marijoa/uploads"
-    MAX_UPLOAD_SIZE_MB: int = 20
+    MAX_UPLOAD_SIZE_MB: int = 25
+
+    # Azure Blob Storage
+    AZURE_STORAGE_CONNECTION_STRING: str = "change_me"
+    AZURE_STORAGE_CONTAINER_NAME: str = "marijoa-files"
+    AZURE_STORAGE_ACCOUNT_NAME: str = "change_me"
+    AZURE_STORAGE_PUBLIC_ACCESS: bool = False
+
+    # File uploads
+    ALLOWED_UPLOAD_MIME_TYPES: str = (
+        "image/jpeg,image/png,image/gif,image/webp,"
+        "application/pdf,"
+        "text/plain,text/csv,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+    FILE_DOWNLOAD_SAS_EXPIRE_MINUTES: int = 10
 
     # Logging
     LOG_LEVEL: str = "INFO"
 
     # ------------------------------------------------------------------
+    # AI Gateway
+    # ------------------------------------------------------------------
+    AI_PROVIDER: str = "openai_compatible"
+    OPENAI_COMPATIBLE_API_KEY: str = "change_me"
+    OPENAI_COMPATIBLE_BASE_URL: str = "https://your-openai-compatible-endpoint.com/openai/v1"
+    OPENAI_COMPATIBLE_MODEL: str = "claude-sonnet-4-6"
+    AI_REQUEST_TIMEOUT_SECONDS: int = 60
+    AI_MAX_OUTPUT_TOKENS: int = 1200
+    AI_TEMPERATURE: float = 0.4
+    AI_MAX_HISTORY_MESSAGES: int = 20
+
+    # ------------------------------------------------------------------
+    # Background Jobs (RQ)
+    # ------------------------------------------------------------------
+    BACKGROUND_JOBS_ENABLED: bool = True
+    RQ_DEFAULT_QUEUE: str = "default"
+    RQ_FILE_QUEUE: str = "files"
+    RQ_AI_QUEUE: str = "ai"
+    RQ_JOB_TIMEOUT_SECONDS: int = 600
+    RQ_JOB_RESULT_TTL_SECONDS: int = 3600
+    RQ_JOB_FAILURE_TTL_SECONDS: int = 86400
+
+    # ------------------------------------------------------------------
     # Validators
     # ------------------------------------------------------------------
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalise_database_url(cls, v: str) -> str:
+        # Ensure the psycopg v3 driver is used regardless of how the URL was written.
+        # Handles postgresql:// and postgres:// (Heroku/cloud shorthand).
+        if v.startswith("postgresql://") or v.startswith("postgres://"):
+            v = v.replace("postgresql://", "postgresql+psycopg://", 1)
+            v = v.replace("postgres://", "postgresql+psycopg://", 1)
+        return v
 
     @field_validator("APP_ENV")
     @classmethod
