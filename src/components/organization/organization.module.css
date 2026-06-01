@@ -1,0 +1,515 @@
+/* ─── Shared Layout ──────────────────────────────────────────────── */
+
+.pageArea {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-bg);
+  overflow-y: auto;
+}
+
+.pageInner {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 32px 28px 56px;
+}
+
+/* ─── Page Header ───────────────────────────────────────────────── */
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.orgLogoWrap {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  user-select: none;
+}
+
+.wsLogoWrap {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-secondary);
+}
+
+.pageHeaderContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.pageName {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  margin: 0 0 3px;
+}
+
+.pageSlug {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.pageHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─── Stats Bar ─────────────────────────────────────────────────── */
+
+.statsBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fafafa;
+  overflow: hidden;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 20px;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.statDivider {
+  width: 1px;
+  background: var(--color-border);
+  align-self: stretch;
+}
+
+/* ─── Description ───────────────────────────────────────────────── */
+
+.pageDesc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0 0 24px;
+}
+
+/* ─── Section ───────────────────────────────────────────────────── */
+
+.section {
+  margin-bottom: 28px;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+}
+
+/* ─── Workspace Grid (OrganizationOverview) ──────────────────────── */
+
+.wsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.wsCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+  width: 100%;
+  color: var(--color-text-primary);
+}
+
+.wsCard:hover {
+  border-color: #d0d0d0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.wsCard:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.wsCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wsCardIcon {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-secondary);
+}
+
+.wsCardName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.wsCardDesc {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+}
+
+.wsCardStats {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.wsCardStat {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Recent Chats ──────────────────────────────────────────────── */
+
+.chatList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chatItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  transition: background 100ms ease;
+  width: 100%;
+}
+
+.chatItem:hover {
+  background: var(--color-sidebar-hover);
+}
+
+.chatItem:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.chatItemTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatItemMeta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.emptyChatMsg {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: 8px 0;
+}
+
+/* ─── Actions ───────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.actionBtn:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.actionBtnPrimary {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.actionBtnPrimary:hover {
+  background: #333333;
+  border-color: #333333;
+}
+
+/* ─── Toast Banner ──────────────────────────────────────────────── */
+
+.toastBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 500;
+  animation: toastIn 200ms ease both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Member Preview ─────────────────────────────────────────────── */
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memberAvatarStack {
+  display: flex;
+  align-items: center;
+}
+
+.memberAvatar {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.memberAvatar + .memberAvatar,
+.memberAvatar + .memberAvatarOverflow {
+  margin-left: -8px;
+}
+
+.memberAvatarOverflow {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: -8px;
+  user-select: none;
+}
+
+.memberListLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Member list (detailed) */
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.memberListItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 100ms ease;
+}
+
+.memberListItem:hover {
+  background: var(--color-sidebar-hover);
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberEmail {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.memberStatusInvited {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ─── Role Badge ─────────────────────────────────────────────────── */
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.roleOwner { background: #f0f0f0; color: #1a1a1a; }
+.roleAdmin { background: #eff6ff; color: #1d4ed8; }
+.roleManager { background: #f5f3ff; color: #7c3aed; }
+.roleMember { background: #f0fdf4; color: #15803d; }
+.roleViewer { background: #f4f4f5; color: #6b6b6b; }
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .pageInner {
+    padding: 20px 16px 40px;
+  }
+
+  .wsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsBar {
+    flex-wrap: wrap;
+  }
+}

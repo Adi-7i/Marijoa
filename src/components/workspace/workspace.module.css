@@ -1,0 +1,279 @@
+.modeToggle {
+  display: flex;
+  gap: 3px;
+  padding: 8px 12px 4px;
+}
+
+.modeBtn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.modeBtn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-sidebar-hover);
+}
+
+.modeBtnActive {
+  background: #ffffff;
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.modeBtnActive:hover {
+  background: #ffffff;
+}
+
+/* ─── Workspace Switcher ───────────────────────────────────────────── */
+
+.wsSwitcherWrap {
+  position: relative;
+  padding: 4px 12px;
+}
+
+.wsSwitcherBtn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 0 8px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.wsSwitcherBtn:hover {
+  background: #f9f9f9;
+  border-color: #d0d0d0;
+}
+
+.wsIcon {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.wsName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.wsChevron {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  transition: transform 160ms ease;
+}
+
+.wsChevronOpen {
+  transform: rotate(180deg);
+}
+
+.wsDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 12px;
+  right: 12px;
+  z-index: 50;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: dropIn 120ms ease both;
+}
+
+.wsDropdownItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 12px;
+  text-align: left;
+  transition: background 100ms ease;
+}
+
+.wsDropdownItem:hover {
+  background: var(--color-sidebar-hover);
+}
+
+.wsDropdownItemActive {
+  background: #f0f0f0;
+  font-weight: 500;
+}
+
+.wsDropdownItemName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wsDropdownItemDefault {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+/* ─── Workspace Badge ──────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 6px;
+}
+
+.badgePersonal {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badgeCompany {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Workspace List (sidebar vertical list) ──────────────────────── */
+
+.wsListWrap {
+  padding: 4px 0 2px;
+}
+
+.orgIndicator {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 6px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: color 100ms ease;
+}
+
+.orgIndicator:hover .orgIndicatorName {
+  color: var(--color-text-primary);
+}
+
+.orgIndicatorIcon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.orgIndicatorName {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  text-transform: uppercase;
+  transition: color 100ms ease;
+}
+
+.wsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0 8px;
+}
+
+.wsListItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sidebar-item);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 0 8px;
+  transition: background 100ms ease, color 100ms ease;
+  text-align: left;
+}
+
+.wsListItem:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+}
+
+.wsListItem:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: -1px;
+}
+
+.wsListItemActive {
+  background: var(--color-avatar-bg);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.wsListItemActive:hover {
+  background: var(--color-avatar-bg);
+}
+
+.wsListItemIcon {
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.wsListItemName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

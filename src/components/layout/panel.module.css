@@ -1,0 +1,302 @@
+.rightPanel {
+  display: flex;
+  width: 280px;
+  min-width: 260px;
+  flex-shrink: 0;
+  flex-direction: column;
+  height: 100%;
+  border-left: 1px solid var(--color-border);
+  background: #fafafa;
+  animation: slideInRight 180ms ease both;
+}
+
+.rightPanelHeader {
+  display: flex;
+  height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 4px 0 12px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.rightPanelTabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rightPanelTab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 0 8px;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.rightPanelTab:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-secondary);
+}
+
+.rightPanelTabActive {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+}
+
+.rightPanelClose {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.rightPanelClose:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+}
+
+.rightPanelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* ─── Placeholder Sections ─────────────────────────────────────────── */
+
+.placeholderHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.placeholderIcon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-muted);
+}
+
+.placeholderTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.1px;
+}
+
+.placeholderSub {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.placeholderList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.artifactCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px 12px;
+  transition: border-color 120ms ease;
+  cursor: pointer;
+}
+
+.artifactCard:hover {
+  border-color: #d0d0d0;
+}
+
+.artifactCardTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.artifactCardType {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.artifactCardTitle {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifactCardMeta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding-left: 26px;
+}
+
+.fileCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.fileCard:hover {
+  border-color: #d0d0d0;
+}
+
+.fileCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.fileCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileCardName {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileCardSize {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.contextSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contextRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contextLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.contextValue {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Admin placeholder ────────────────────────────────────────────── */
+
+.adminPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+}
+
+.adminSection {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.adminSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: #f7f7f8;
+}
+
+.adminSectionBody {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
