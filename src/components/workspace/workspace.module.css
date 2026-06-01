@@ -177,3 +177,103 @@
     transform: translateY(0);
   }
 }
+
+/* ─── Workspace List (sidebar vertical list) ──────────────────────── */
+
+.wsListWrap {
+  padding: 4px 0 2px;
+}
+
+.orgIndicator {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 6px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: color 100ms ease;
+}
+
+.orgIndicator:hover .orgIndicatorName {
+  color: var(--color-text-primary);
+}
+
+.orgIndicatorIcon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.orgIndicatorName {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  text-transform: uppercase;
+  transition: color 100ms ease;
+}
+
+.wsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0 8px;
+}
+
+.wsListItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sidebar-item);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 0 8px;
+  transition: background 100ms ease, color 100ms ease;
+  text-align: left;
+}
+
+.wsListItem:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+}
+
+.wsListItem:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: -1px;
+}
+
+.wsListItemActive {
+  background: var(--color-avatar-bg);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.wsListItemActive:hover {
+  background: var(--color-avatar-bg);
+}
+
+.wsListItemIcon {
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.wsListItemName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

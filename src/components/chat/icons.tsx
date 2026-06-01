@@ -128,3 +128,27 @@ export function PanelRightIcon({ size = 20, ...props }: IconProps) {
 export function UploadIcon({ size = 16, ...props }: IconProps) {
   return <svg {...baseProps(size, props)}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>;
 }
+
+export function UsersIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+}
+
+export function UserPlusIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>;
+}
+
+export function PlusCircleIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><circle cx="12" cy="12" r="10" /><path d="M8 12h8" /><path d="M12 8v8" /></svg>;
+}
+
+export function ShieldIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
+}
+
+export function MessageSquareIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+}
+
+export function CheckCircleIcon({ size = 16, ...props }: IconProps) {
+  return <svg {...baseProps(size, props)}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>;
+}

@@ -7,7 +7,7 @@ import { ChatHistoryList } from "@/components/chat/ChatHistoryList";
 import { UserProfile } from "@/components/chat/UserProfile";
 import { MarijoaMark, PanelIcon, PlusIcon, SearchIcon, SettingsIcon } from "@/components/chat/icons";
 import { ModeSwitcher } from "@/components/workspace/ModeSwitcher";
-import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
+import { WorkspaceList } from "@/components/workspace/WorkspaceList";
 import styles from "@/components/chat/chat-ui.module.css";
 
 interface SidebarProps {
@@ -25,13 +25,13 @@ interface SidebarProps {
   workspaces?: Workspace[];
   selectedWorkspaceId?: string | null;
   onWorkspaceChange?: (workspaceId: string) => void;
+  onShowOrgOverview?: () => void;
   // Chat state
   chats?: Chat[];
   selectedChatId?: string | null;
   onChatSelect?: (chatId: string) => void;
   user?: User;
 }
-
 
 export function Sidebar({
   onNewChat,
@@ -42,9 +42,12 @@ export function Sidebar({
   className,
   mode = "personal",
   onModeChange,
+  organizations = [],
+  selectedOrgId,
   workspaces = [],
   selectedWorkspaceId = null,
   onWorkspaceChange,
+  onShowOrgOverview,
   chats = [],
   selectedChatId = null,
   onChatSelect,
@@ -54,6 +57,8 @@ export function Sidebar({
   const [searchOpen, setSearchOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const currentOrg = organizations.find((o) => o.id === selectedOrgId);
 
   const filteredChats = searchQuery.trim()
     ? chats.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -130,12 +135,15 @@ export function Sidebar({
         <ModeSwitcher mode={mode} onChange={onModeChange} />
       )}
 
-      {/* Workspace selector (org mode only) */}
-      {mode === "organization" && onWorkspaceChange && (
-        <WorkspaceSwitcher
+      {/* Organization workspace list (org mode) */}
+      {mode === "organization" && onWorkspaceChange && currentOrg && (
+        <WorkspaceList
+          orgName={currentOrg.name}
+          orgRole={currentOrg.role}
           workspaces={workspaces}
           selectedId={selectedWorkspaceId}
           onSelect={onWorkspaceChange}
+          onShowOrgOverview={onShowOrgOverview}
         />
       )}
 

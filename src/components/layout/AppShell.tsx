@@ -10,11 +10,14 @@ import {
 import { MainChatPanel } from "@/components/layout/MainChatPanel";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { RightPanel } from "@/components/layout/RightPanel";
+import { OrganizationOverview } from "@/components/organization/OrganizationOverview";
+import { WorkspaceOverview } from "@/components/organization/WorkspaceOverview";
 import {
   MOCK_ORGANIZATIONS,
   MOCK_WORKSPACES,
   MOCK_CHATS,
   MOCK_MESSAGES,
+  MOCK_MEMBERS,
   MOCK_ARTIFACTS,
   MOCK_FILES,
   MOCK_USER,
@@ -95,10 +98,21 @@ export function AppShell() {
     [selectedWorkspaceId]
   );
 
+  const currentMembers = useMemo(
+    () => MOCK_MEMBERS.filter((m) => m.organizationId === selectedOrgId),
+    [selectedOrgId]
+  );
+
+  // Content routing
+  const showOrgOverview = mode === "organization" && !selectedWorkspaceId;
+  const showWorkspaceOverview = mode === "organization" && !!selectedWorkspaceId && !selectedChatId;
+  const showChat = !showOrgOverview && !showWorkspaceOverview;
+
   // Handlers
   const handleModeChange = useCallback((newMode: AppMode) => {
     setMode(newMode);
     setSelectedChatId(null);
+    setRightPanelOpen(false);
     setResetSignal((s) => s + 1);
     if (newMode === "personal") {
       setSelectedOrgId("org-personal");
@@ -110,10 +124,7 @@ export function AppShell() {
       const companyOrg = MOCK_ORGANIZATIONS.find((o) => o.type === "COMPANY");
       if (companyOrg) {
         setSelectedOrgId(companyOrg.id);
-        const ws = MOCK_WORKSPACES.find(
-          (w) => w.organizationId === companyOrg.id && w.isDefault
-        );
-        setSelectedWorkspaceId(ws?.id ?? null);
+        setSelectedWorkspaceId(null); // show org overview first
       }
     }
   }, []);
@@ -121,6 +132,13 @@ export function AppShell() {
   const handleWorkspaceChange = useCallback((workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
     setSelectedChatId(null);
+    setResetSignal((s) => s + 1);
+  }, []);
+
+  const handleShowOrgOverview = useCallback(() => {
+    setSelectedWorkspaceId(null);
+    setSelectedChatId(null);
+    setRightPanelOpen(false);
     setResetSignal((s) => s + 1);
   }, []);
 
@@ -186,6 +204,7 @@ export function AppShell() {
         workspaces={currentWorkspaces}
         selectedWorkspaceId={selectedWorkspaceId}
         onWorkspaceChange={handleWorkspaceChange}
+        onShowOrgOverview={handleShowOrgOverview}
         chats={currentChats}
         selectedChatId={selectedChatId}
         onChatSelect={handleChatSelect}
@@ -199,20 +218,45 @@ export function AppShell() {
         onClick={() => setDrawerOpen(false)}
       />
 
-      <MainChatPanel
-        resetSignal={resetSignal}
-        onOpenSidebar={() => setDrawerOpen(true)}
-        selectedChatId={selectedChatId}
-        initialMessages={initialMessages}
-        chatTitle={selectedChat?.title}
-        workspaceName={currentWorkspace?.name}
-        orgName={currentOrg?.name}
-        mode={mode}
-        rightPanelOpen={rightPanelOpen}
-        onToggleRightPanel={() => setRightPanelOpen((o) => !o)}
-      />
+      {/* Organization overview — org mode, no workspace selected */}
+      {showOrgOverview && currentOrg && (
+        <OrganizationOverview
+          org={currentOrg}
+          workspaces={currentWorkspaces}
+          members={currentMembers}
+          onSelectWorkspace={handleWorkspaceChange}
+        />
+      )}
 
-      {rightPanelOpen && (
+      {/* Workspace overview — org mode, workspace selected, no chat */}
+      {showWorkspaceOverview && currentWorkspace && currentOrg && (
+        <WorkspaceOverview
+          workspace={currentWorkspace}
+          org={currentOrg}
+          chats={currentChats}
+          members={currentMembers}
+          onSelectChat={handleChatSelect}
+          onNewChat={startNewChat}
+        />
+      )}
+
+      {/* Chat panel — personal mode or a chat is selected */}
+      {showChat && (
+        <MainChatPanel
+          resetSignal={resetSignal}
+          onOpenSidebar={() => setDrawerOpen(true)}
+          selectedChatId={selectedChatId}
+          initialMessages={initialMessages}
+          chatTitle={selectedChat?.title}
+          workspaceName={currentWorkspace?.name}
+          orgName={currentOrg?.name}
+          mode={mode}
+          rightPanelOpen={rightPanelOpen}
+          onToggleRightPanel={() => setRightPanelOpen((o) => !o)}
+        />
+      )}
+
+      {rightPanelOpen && showChat && (
         <RightPanel
           tab={rightPanelTab}
           onTabChange={setRightPanelTab}

@@ -7,6 +7,7 @@ import {
   MOCK_MESSAGES,
   MOCK_ARTIFACTS,
   MOCK_FILES,
+  MOCK_MEMBERS,
   adaptMessageToChat,
 } from "@/lib/mock/mock-data";
 
@@ -21,6 +22,12 @@ describe("mock data", () => {
     const types = MOCK_ORGANIZATIONS.map((o) => o.type);
     expect(types).toContain("PERSONAL");
     expect(types).toContain("COMPANY");
+  });
+
+  it("company org is Cynerza Systems Pvt Ltd", () => {
+    const company = MOCK_ORGANIZATIONS.find((o) => o.type === "COMPANY");
+    expect(company?.name).toBe("Cynerza Systems Pvt Ltd");
+    expect(company?.id).toBe("org-cynerza");
   });
 
   it("has workspaces for each organization", () => {
@@ -41,6 +48,15 @@ describe("mock data", () => {
     }
   });
 
+  it("Cynerza has all required workspaces", () => {
+    const wsNames = MOCK_WORKSPACES.filter((w) => w.organizationId === "org-cynerza").map((w) => w.name);
+    expect(wsNames).toContain("Sales Team");
+    expect(wsNames).toContain("Tech Team");
+    expect(wsNames).toContain("HR Team");
+    expect(wsNames).toContain("Client - Tech Corner");
+    expect(wsNames).toContain("Client - Popular Gym");
+  });
+
   it("has chats linked to valid workspaces", () => {
     const wsIds = new Set(MOCK_WORKSPACES.map((w) => w.id));
     for (const chat of MOCK_CHATS) {
@@ -52,6 +68,26 @@ describe("mock data", () => {
     const chatIds = new Set(MOCK_CHATS.map((c) => c.id));
     for (const msg of MOCK_MESSAGES) {
       expect(chatIds.has(msg.chatId)).toBe(true);
+    }
+  });
+
+  it("has 5 Cynerza members with all roles covered", () => {
+    const members = MOCK_MEMBERS.filter((m) => m.organizationId === "org-cynerza");
+    expect(members).toHaveLength(5);
+    const roles = members.map((m) => m.role);
+    expect(roles).toContain("OWNER");
+    expect(roles).toContain("ADMIN");
+    expect(roles).toContain("MANAGER");
+    expect(roles).toContain("MEMBER");
+    expect(roles).toContain("VIEWER");
+  });
+
+  it("all members have required fields", () => {
+    for (const member of MOCK_MEMBERS) {
+      expect(member.id).toBeTruthy();
+      expect(member.fullName).toBeTruthy();
+      expect(member.email).toBeTruthy();
+      expect(member.initials).toHaveLength(2);
     }
   });
 

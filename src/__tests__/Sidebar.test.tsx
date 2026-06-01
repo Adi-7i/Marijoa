@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { MOCK_USER, MOCK_CHATS, MOCK_WORKSPACES } from "@/lib/mock/mock-data";
+import { MOCK_USER, MOCK_CHATS, MOCK_WORKSPACES, MOCK_ORGANIZATIONS } from "@/lib/mock/mock-data";
 
 const personalChats = MOCK_CHATS.filter((c) => c.organizationId === "org-personal");
 const personalWorkspaces = MOCK_WORKSPACES.filter((w) => w.organizationId === "org-personal");
+const cynerzaChats = MOCK_CHATS.filter((c) => c.organizationId === "org-cynerza");
+const cynerzaWorkspaces = MOCK_WORKSPACES.filter((w) => w.organizationId === "org-cynerza");
+const cynerzaOrg = MOCK_ORGANIZATIONS.find((o) => o.id === "org-cynerza")!;
 
 describe("Sidebar", () => {
   it("renders the Marijoa brand text", () => {
@@ -62,23 +65,41 @@ describe("Sidebar", () => {
     expect(screen.getByRole("group", { name: /switch workspace mode/i })).toBeInTheDocument();
   });
 
-  it("renders workspace switcher in organization mode", () => {
-    const orgChats = MOCK_CHATS.filter((c) => c.organizationId === "org-acme");
-    const orgWorkspaces = MOCK_WORKSPACES.filter((w) => w.organizationId === "org-acme");
+  it("renders workspace list in organization mode", () => {
     render(
       <Sidebar
         user={MOCK_USER}
-        chats={orgChats}
+        chats={cynerzaChats}
         mode="organization"
         onModeChange={() => undefined}
-        workspaces={orgWorkspaces}
-        selectedWorkspaceId="ws-acme-general"
+        organizations={[cynerzaOrg]}
+        selectedOrgId="org-cynerza"
+        workspaces={cynerzaWorkspaces}
+        selectedWorkspaceId="ws-cynerza-sales"
         onWorkspaceChange={() => undefined}
       />
     );
     expect(
-      screen.getByRole("button", { name: /current workspace/i })
+      screen.getByRole("list", { name: /organization workspaces/i })
     ).toBeInTheDocument();
+  });
+
+  it("renders workspace names in org mode sidebar", () => {
+    render(
+      <Sidebar
+        user={MOCK_USER}
+        chats={cynerzaChats}
+        mode="organization"
+        onModeChange={() => undefined}
+        organizations={[cynerzaOrg]}
+        selectedOrgId="org-cynerza"
+        workspaces={cynerzaWorkspaces}
+        selectedWorkspaceId="ws-cynerza-sales"
+        onWorkspaceChange={() => undefined}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Sales Team workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tech Team workspace/i })).toBeInTheDocument();
   });
 
   it("renders admin link in organization mode", () => {
