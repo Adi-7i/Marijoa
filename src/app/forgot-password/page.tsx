@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { GuestGuard } from "@/components/auth/GuestGuard";
 
 export const metadata: Metadata = {
   title: "Reset password — Marijoa",
@@ -9,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthLayout>
-      <ForgotPasswordForm />
-    </AuthLayout>
+    <GuestGuard>
+      <AuthLayout>
+        <ForgotPasswordForm />
+      </AuthLayout>
+    </GuestGuard>
   );
 }

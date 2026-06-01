@@ -43,7 +43,7 @@ export function LoginForm() {
     try {
       const user = await mockLogin(email, password);
       showToast(`Signed in as ${user.name} (mock).`, { variant: "success" });
-      router.push("/");
+      router.push("/chat");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign-in failed.";
       setErrors({ form: message });

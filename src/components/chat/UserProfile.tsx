@@ -4,6 +4,7 @@ import styles from "@/components/chat/chat-ui.module.css";
 interface UserProfileProps {
   user: UserProfileType;
   className?: string;
+  onLogout?: () => void;
 }
 
 const gradients = [
@@ -21,7 +22,7 @@ function hashName(name: string) {
   return [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0);
 }
 
-export function UserProfile({ user, className }: UserProfileProps) {
+export function UserProfile({ user, className, onLogout }: UserProfileProps) {
   const pair = gradients[hashName(user.name) % gradients.length];
 
   return (
@@ -35,6 +36,27 @@ export function UserProfile({ user, className }: UserProfileProps) {
           {user.initials.slice(0, 2).toUpperCase()}
         </span>
         <span className={styles.userName}>{user.name}</span>
+        {onLogout ? (
+          <span
+            role="button"
+            tabIndex={0}
+            className={styles.userLogout}
+            aria-label="Sign out"
+            onClick={(e) => {
+              e.stopPropagation();
+              onLogout();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onLogout();
+              }
+            }}
+          >
+            Sign out
+          </span>
+        ) : null}
       </button>
     </div>
   );

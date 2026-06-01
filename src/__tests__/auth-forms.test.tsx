@@ -41,7 +41,7 @@ describe("LoginForm", () => {
       target: { value: "anything" },
     });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"), {
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/chat"), {
       timeout: 2000,
     });
   });
@@ -75,7 +75,7 @@ describe("SignupForm", () => {
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: "abcd1234" } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "abcd1234" } });
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"), { timeout: 2000 });
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/chat"), { timeout: 2000 });
   });
 });
 

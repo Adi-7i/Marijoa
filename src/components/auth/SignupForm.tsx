@@ -57,7 +57,7 @@ export function SignupForm() {
       showToast(`Welcome, ${user.name}! Mock account created.`, {
         variant: "success",
       });
-      router.push("/");
+      router.push("/chat");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not create account.";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useRouter } from "next/navigation";
 import { APP_NAME } from "@/lib/constants";
 import type { AppMode, Chat, Organization, User, Workspace } from "@/types/marijoa";
 import { ChatHistoryList } from "@/components/chat/ChatHistoryList";
@@ -8,6 +9,8 @@ import { UserProfile } from "@/components/chat/UserProfile";
 import { MarijoaMark, PanelIcon, PlusIcon, SearchIcon, SettingsIcon } from "@/components/chat/icons";
 import { ModeSwitcher } from "@/components/workspace/ModeSwitcher";
 import { WorkspaceList } from "@/components/workspace/WorkspaceList";
+import { mockLogout } from "@/lib/mock/mock-auth";
+import { showToast } from "@/lib/toast";
 import styles from "@/components/chat/chat-ui.module.css";
 
 interface SidebarProps {
@@ -57,10 +60,18 @@ export function Sidebar({
   onChatSelect,
   user,
 }: SidebarProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // Mock auth only. Replace with backend session invalidation during integration phase.
+  function handleLogout() {
+    mockLogout();
+    showToast("Signed out (mock).", { variant: "info" });
+    router.replace("/login");
+  }
 
   const currentOrg = organizations.find((o) => o.id === selectedOrgId);
 
@@ -247,7 +258,10 @@ export function Sidebar({
 
       {/* User profile */}
       {user ? (
-        <UserProfile user={{ name: user.name, initials: user.initials }} />
+        <UserProfile
+          user={{ name: user.name, initials: user.initials }}
+          onLogout={handleLogout}
+        />
       ) : null}
 
       <div
