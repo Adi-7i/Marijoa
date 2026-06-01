@@ -65,9 +65,3 @@ export function useToasts(): Toast[] {
   return state;
 }
 
-export const MOCK_ACTION_NOTICE =
-  "Mock action only. Backend integration will connect this feature later.";
-
-export function showMockNotice(message: string = MOCK_ACTION_NOTICE) {
-  return showToast(message, { variant: "info" });
-}

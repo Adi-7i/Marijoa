@@ -123,7 +123,7 @@ export function WorkspaceContextPanel({
       <div className={styles.contextDivider} />
       <div className={styles.contextRow}>
         <span className={styles.contextLabel}>Model</span>
-        <span className={styles.contextValue}>Backend AI Gateway (pending integration)</span>
+        <span className={styles.contextValue}>Marijoa AI Gateway</span>
       </div>
     </div>
   );

@@ -93,7 +93,7 @@ export function WorkspaceOverview({
             <button
               type="button"
               className={styles.actionBtn}
-              onClick={() => setToastMsg("File upload — will be available after backend integration.")}
+              onClick={() => setToastMsg("Use the Files tab in the right panel to upload.")}
             >
               <UploadIcon size={14} aria-hidden="true" />
               Add File
@@ -101,7 +101,7 @@ export function WorkspaceOverview({
             <button
               type="button"
               className={styles.actionBtn}
-              onClick={() => setToastMsg("Admin settings — will be available after backend integration.")}
+              onClick={() => setToastMsg("Open Admin from the sidebar to manage this organization.")}
             >
               <ShieldIcon size={14} aria-hidden="true" />
               Admin

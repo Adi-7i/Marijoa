@@ -92,8 +92,16 @@ export function InputBar({ onSend, onAttach, autoFocus = false, className }: Inp
         <button
           type="button"
           className={styles.attachButton}
-          aria-label="Add attachment or start new chat"
-          onClick={onAttach}
+          aria-label="Attach a file"
+          aria-disabled={onAttach ? undefined : true}
+          onClick={(event) => {
+            // The composer lives inside a form-like wrapper in some layouts;
+            // explicitly stop propagation/default so the plus button can never
+            // submit the message or bubble into outer click handlers.
+            event.preventDefault();
+            event.stopPropagation();
+            onAttach?.();
+          }}
         >
           <PlusIcon size={18} />
         </button>

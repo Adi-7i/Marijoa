@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { GuestGuard } from "@/components/auth/GuestGuard";
-import { mockLogin, mockLogout } from "@/lib/mock/mock-auth";
+import { AuthProvider } from "@/lib/auth/auth-context";
+import { setTokens, clearTokens } from "@/lib/auth/token-store";
 
 const replaceMock = vi.fn();
+const fetchMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -16,12 +18,38 @@ vi.mock("next/navigation", () => ({
 
 beforeEach(() => {
   replaceMock.mockReset();
-  localStorage.clear();
+  fetchMock.mockReset();
+  clearTokens();
+  vi.stubGlobal("fetch", fetchMock);
 });
+
+function renderAuthed(child: React.ReactNode) {
+  setTokens("test-access", "test-refresh");
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({
+        id: "u-1",
+        full_name: "Test User",
+        email: "test@marijoa.dev",
+        avatar_url: null,
+        is_active: true,
+        is_verified: true,
+        created_at: "2026-01-01T00:00:00Z",
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    )
+  );
+  return render(<AuthProvider>{child}</AuthProvider>);
+}
+
+function renderUnauthed(child: React.ReactNode) {
+  clearTokens();
+  return render(<AuthProvider>{child}</AuthProvider>);
+}
 
 describe("AuthGuard", () => {
   it("redirects unauthenticated users to /login", async () => {
-    render(
+    renderUnauthed(
       <AuthGuard>
         <div>secret</div>
       </AuthGuard>
@@ -31,8 +59,7 @@ describe("AuthGuard", () => {
   });
 
   it("renders children when authenticated", async () => {
-    await mockLogin("a@b.co", "x");
-    render(
+    renderAuthed(
       <AuthGuard>
         <div>secret</div>
       </AuthGuard>
@@ -42,7 +69,7 @@ describe("AuthGuard", () => {
   });
 
   it("respects a custom redirectTo", async () => {
-    render(
+    renderUnauthed(
       <AuthGuard redirectTo="/login?reason=expired">
         <div>secret</div>
       </AuthGuard>
@@ -55,8 +82,7 @@ describe("AuthGuard", () => {
 
 describe("GuestGuard", () => {
   it("redirects authenticated users to /chat", async () => {
-    await mockLogin("a@b.co", "x");
-    render(
+    renderAuthed(
       <GuestGuard>
         <div>public</div>
       </GuestGuard>
@@ -66,19 +92,7 @@ describe("GuestGuard", () => {
   });
 
   it("renders children when unauthenticated", async () => {
-    render(
-      <GuestGuard>
-        <div>public</div>
-      </GuestGuard>
-    );
-    await waitFor(() => expect(screen.getByText("public")).toBeInTheDocument());
-    expect(replaceMock).not.toHaveBeenCalled();
-  });
-
-  it("renders children after logout", async () => {
-    await mockLogin("a@b.co", "x");
-    mockLogout();
-    render(
+    renderUnauthed(
       <GuestGuard>
         <div>public</div>
       </GuestGuard>

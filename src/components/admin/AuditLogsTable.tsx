@@ -74,7 +74,7 @@ export function AuditLogsTable({ logs }: AuditLogsTableProps) {
         </select>
 
         <span className={styles.filterPlaceholder} aria-hidden="true">
-          Date range — coming in integration phase
+          Date range filtering coming soon
         </span>
       </div>
 

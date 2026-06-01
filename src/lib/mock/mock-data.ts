@@ -1,6 +1,13 @@
 /**
- * Mock data for Marijoa frontend development.
- * All AI calls must go through the backend AI Gateway — never call LLMs directly from the frontend.
+ * DEMO-ONLY mock dataset.
+ *
+ * The production app no longer imports anything from this file — every active
+ * flow goes through the real FastAPI backend via `src/lib/api/*`. These
+ * fixtures are retained solely for tests (component snapshots, layout
+ * smoke tests) and for local design previews.
+ *
+ * If you add anything here, do NOT import it from the production app shell or
+ * any user-facing component. Tests and storybook-style demos only.
  */
 
 import type {

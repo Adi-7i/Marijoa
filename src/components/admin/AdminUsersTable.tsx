@@ -28,7 +28,7 @@ const ROLE_OPTIONS: Array<{ value: "" | OrganizationRole; label: string }> = [
 ];
 
 const ACTION_NOTICE =
-  "Role management will connect to backend admin APIs in the integration phase.";
+  "Member role and status updates are coming soon.";
 
 interface AdminUsersTableProps {
   members: OrganizationMember[];
@@ -192,8 +192,8 @@ export function AdminUsersTable({ members }: AdminUsersTableProps) {
           <div className={styles.modal}>
             <p className={styles.modalTitle} id="invite-modal-title">Invite Member</p>
             <p className={styles.modalBody}>
-              Member invitations will connect to backend organization APIs in the integration phase.
-              Real invitations will send email notifications and create pending membership records.
+              Member invitations are coming soon. They will send email notifications and create
+              pending membership records in your organization.
             </p>
             <button
               type="button"

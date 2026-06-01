@@ -4,17 +4,22 @@ import { InputBar } from "@/components/chat/InputBar";
 
 interface ChatComposerProps {
   onSend?: (message: string) => void;
-  onReset?: () => void;
+  /**
+   * Plus / attachment button handler. Opens the file upload UI.
+   * Intentionally NOT wired to any "reset chat" or "new chat" action — the
+   * composer's plus button must never reset workspace/chat state.
+   */
+  onAttach?: () => void;
   isBottomBar?: boolean;
   autoFocus?: boolean;
   className?: string;
 }
 
-export function ChatComposer({ onSend, onReset, autoFocus = false, className }: ChatComposerProps) {
+export function ChatComposer({ onSend, onAttach, autoFocus = false, className }: ChatComposerProps) {
   return (
     <InputBar
       onSend={onSend}
-      onAttach={onReset}
+      onAttach={onAttach}
       autoFocus={autoFocus}
       className={className}
     />

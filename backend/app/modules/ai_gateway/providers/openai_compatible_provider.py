@@ -111,6 +111,14 @@ class OpenAICompatibleProvider(AIProvider):
     def stream_response(self, messages: list) -> Generator[str, None, None]:
         """Stream text deltas from the configured OpenAI-compatible endpoint.
 
+        Uses the canonical ``responses.create(stream=True)`` event iterator,
+        which is broadly supported across upstreams (OpenAI, Azure OpenAI,
+        Anthropic-on-Azure compatible proxies, vLLM, etc.). The streaming
+        helper context manager (``responses.stream``) relies on richer
+        client-side state that some proxies do not return, so we prefer the
+        lower-level event iterator and pull text from
+        ``response.output_text.delta`` events.
+
         Args:
             messages: Ordered conversation turns including any system instruction.
 
@@ -125,30 +133,78 @@ class OpenAICompatibleProvider(AIProvider):
             {"role": m.role, "content": m.content} for m in messages
         ]
         try:
-            with self._client.responses.stream(
+            stream = self._client.responses.create(
                 model=self._model,
                 input=input_dicts,
                 max_output_tokens=self._max_tokens,
                 temperature=self._temperature,
+                stream=True,
                 timeout=self._timeout,
-            ) as stream:
-                for text in stream.text_deltas:
-                    if text:
-                        yield text
+            )
+            for event in stream:
+                delta = self._extract_stream_delta(event)
+                if delta:
+                    yield delta
         except Exception as exc:
             name = type(exc).__name__
+            # Log full traceback so operators can diagnose the underlying
+            # provider failure; the public message stays sanitised.
+            logger.exception(
+                "OpenAI-compatible stream failed: model=%s exc_type=%s",
+                self._model,
+                name,
+            )
             if "AuthenticationError" in name:
                 raise AIConfigurationError("AI authentication failed") from None
-            elif "RateLimitError" in name:
-                raise AIProviderError("AI rate limit exceeded") from None
-            elif "APIConnectionError" in name or "Timeout" in name:
-                raise AIProviderError("AI service connection failed") from None
-            else:
-                raise AIProviderError("AI service returned an error") from None
+            if "RateLimitError" in name:
+                raise AIProviderError(
+                    "AI rate limit exceeded",
+                    details={"error_type": name},
+                ) from None
+            if "APIConnectionError" in name or "Timeout" in name:
+                raise AIProviderError(
+                    "AI service connection failed",
+                    details={"error_type": name},
+                ) from None
+            raise AIProviderError(
+                "AI service is temporarily unavailable",
+                details={"error_type": name},
+            ) from None
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_stream_delta(event: Any) -> str:
+        """Pull a text delta out of a Responses-API stream event.
+
+        Different upstreams emit slightly different event shapes; we accept
+        any combination of ``type``/``event``/``delta``/``text`` that carries
+        a non-empty string. Unknown events return ``""`` and are skipped.
+        """
+        event_type = getattr(event, "type", None) or getattr(event, "event", None) or ""
+        # Only text-delta events carry incremental content; everything else
+        # (response.created, response.completed, output_item.added, etc.) is
+        # ignored.
+        if not isinstance(event_type, str):
+            return ""
+        if not (event_type.endswith(".delta") or event_type.endswith("_delta")):
+            return ""
+
+        delta = getattr(event, "delta", None)
+        if isinstance(delta, str) and delta:
+            return delta
+        # Some proxies put the chunk under .text instead of .delta.
+        text = getattr(event, "text", None)
+        if isinstance(text, str) and text:
+            return text
+        # Or as a nested object with .value.
+        if delta is not None:
+            value = getattr(delta, "value", None)
+            if isinstance(value, str) and value:
+                return value
+        return ""
 
     @staticmethod
     def _extract_content(response: Any) -> str:

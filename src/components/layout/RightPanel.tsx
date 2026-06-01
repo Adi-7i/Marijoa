@@ -15,12 +15,20 @@ interface RightPanelProps {
   onTabChange: (tab: RightPanelTab) => void;
   onClose: () => void;
   artifacts: Artifact[];
+  artifactsLoading?: boolean;
+  artifactsError?: string | null;
   files: FileItem[];
+  filesLoading?: boolean;
+  filesError?: string | null;
   workspaceName?: string;
   orgName?: string;
   workspace?: Workspace;
   org?: Organization;
   context?: WorkspaceContext;
+  canUpload?: boolean;
+  onUploadFile?: (file: File) => Promise<void> | void;
+  onDeleteFile?: (id: string) => Promise<void> | void;
+  onDeleteArtifact?: (id: string) => Promise<void> | void;
 }
 
 const TABS: { id: RightPanelTab; label: string; Icon: TabIcon }[] = [
@@ -34,10 +42,18 @@ export function RightPanel({
   onTabChange,
   onClose,
   artifacts,
+  artifactsLoading = false,
+  artifactsError = null,
   files,
+  filesLoading = false,
+  filesError = null,
   workspace,
   org,
   context,
+  canUpload = false,
+  onUploadFile,
+  onDeleteFile,
+  onDeleteArtifact,
 }: RightPanelProps) {
   return (
     <aside className={styles.rightPanel} aria-label="Workspace panel">
@@ -68,8 +84,24 @@ export function RightPanel({
       </div>
 
       <div className={styles.rightPanelBody} role="tabpanel">
-        {tab === "artifacts" && <ArtifactPanel artifacts={artifacts} />}
-        {tab === "files"     && <FilePanel files={files} />}
+        {tab === "artifacts" && (
+          <ArtifactPanel
+            artifacts={artifacts}
+            isLoading={artifactsLoading}
+            error={artifactsError}
+            onDelete={onDeleteArtifact}
+          />
+        )}
+        {tab === "files" && (
+          <FilePanel
+            files={files}
+            isLoading={filesLoading}
+            error={filesError}
+            canUpload={canUpload}
+            onUpload={onUploadFile}
+            onDelete={onDeleteFile}
+          />
+        )}
         {tab === "context"   && (
           <WorkspaceContextPanel
             workspace={workspace}

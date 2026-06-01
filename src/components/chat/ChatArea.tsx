@@ -49,7 +49,12 @@ interface ChatAreaProps {
   isThinking: boolean;
   onSend: (message: string) => void;
   onOpenSidebar: () => void;
-  onNewChat?: () => void;
+  /**
+   * Plus / paperclip button in the composer. Should open the file upload UI
+   * (right panel Files tab). Intentionally NOT wired to "new chat" or "reset
+   * chat" — the composer must never reset the active chat or workspace.
+   */
+  onAttach?: () => void;
   chatTitle?: string;
   contextSubtitle?: string;
   rightPanelOpen?: boolean;
@@ -68,7 +73,7 @@ export function ChatArea({
   isThinking,
   onSend,
   onOpenSidebar,
-  onNewChat,
+  onAttach,
   chatTitle,
   contextSubtitle,
   rightPanelOpen = false,
@@ -197,7 +202,7 @@ export function ChatArea({
                   </button>
                 ))}
               </div>
-              <InputBar onSend={onSend} onAttach={onNewChat} autoFocus />
+              <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
             </div>
           </div>
         )}
@@ -205,7 +210,7 @@ export function ChatArea({
 
       {hasMessages && (
         <div className={styles.inputDock}>
-          <InputBar onSend={onSend} onAttach={onNewChat} autoFocus />
+          <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
           <p className={styles.disclaimer}>{DISCLAIMER_TEXT}</p>
         </div>
       )}

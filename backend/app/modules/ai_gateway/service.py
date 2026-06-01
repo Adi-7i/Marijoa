@@ -240,15 +240,24 @@ def ai_stream(
                     {"message_id": None, "chat_id": str(chat_id)},
                 )
         except (AIProviderError, AIConfigurationError, AIResponseError) as exc:
+            logger.warning(
+                "AI stream ended with handled provider error: chat=%s code=%s",
+                chat_id,
+                exc.code,
+            )
             yield format_sse_event(
                 EVENT_ERROR, {"code": exc.code, "message": exc.message}
             )
         except Exception:
+            logger.exception(
+                "AI stream raised an unexpected error: chat=%s",
+                chat_id,
+            )
             yield format_sse_event(
                 EVENT_ERROR,
                 {
                     "code": "AI_SERVICE_UNAVAILABLE",
-                    "message": "An unexpected error occurred",
+                    "message": "AI service is temporarily unavailable",
                 },
             )
 

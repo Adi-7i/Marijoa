@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { Notice } from "@/components/ui/Notice";
 import { validateEmail, validatePassword } from "@/lib/auth-validation";
-import { mockLogin } from "@/lib/mock/mock-auth";
+import { useAuth } from "@/lib/auth/auth-context";
+import { ApiError } from "@/lib/api/errors";
 import { showToast } from "@/lib/toast";
 import styles from "./auth.module.css";
 
@@ -20,6 +21,7 @@ interface FieldErrors {
 
 export function LoginForm() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -41,11 +43,18 @@ export function LoginForm() {
     if (next.email || next.password) return;
     setSubmitting(true);
     try {
-      const user = await mockLogin(email, password);
-      showToast(`Signed in as ${user.name} (mock).`, { variant: "success" });
-      router.push("/chat");
+      const user = await login({ email: email.trim(), password });
+      showToast(`Signed in as ${user.name}.`, { variant: "success" });
+      router.replace("/chat");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Sign-in failed.";
+      const message =
+        err instanceof ApiError
+          ? err.isUnauthorized
+            ? "Invalid email or password."
+            : err.message
+          : err instanceof Error
+            ? err.message
+            : "Sign-in failed.";
       setErrors({ form: message });
     } finally {
       setSubmitting(false);
@@ -132,8 +141,7 @@ export function LoginForm() {
       </p>
 
       <p className={styles.fineprint}>
-        Mock authentication — no backend is contacted. Real login will connect
-        to the Marijoa backend during the integration phase.
+        Marijoa keeps your conversations in your own private workspace.
       </p>
     </>
   );

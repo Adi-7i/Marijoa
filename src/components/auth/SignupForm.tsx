@@ -13,7 +13,8 @@ import {
   validatePassword,
   validatePasswordsMatch,
 } from "@/lib/auth-validation";
-import { mockSignup } from "@/lib/mock/mock-auth";
+import { useAuth } from "@/lib/auth/auth-context";
+import { ApiError } from "@/lib/api/errors";
 import { showToast } from "@/lib/toast";
 import { PasswordStrengthHint } from "./PasswordStrengthHint";
 import styles from "./auth.module.css";
@@ -28,6 +29,7 @@ interface FieldErrors {
 
 export function SignupForm() {
   const router = useRouter();
+  const { register } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,15 +55,23 @@ export function SignupForm() {
       return;
     setSubmitting(true);
     try {
-      const user = await mockSignup(fullName, email, password);
-      showToast(`Welcome, ${user.name}! Mock account created.`, {
-        variant: "success",
+      const user = await register({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
       });
-      router.push("/chat");
+      showToast(`Welcome, ${user.name}!`, { variant: "success" });
+      router.replace("/chat");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Could not create account.";
-      setErrors({ form: message });
+      if (err instanceof ApiError && err.isConflict) {
+        setErrors({ form: "An account with this email already exists." });
+      } else if (err instanceof ApiError) {
+        setErrors({ form: err.message });
+      } else {
+        setErrors({
+          form: err instanceof Error ? err.message : "Could not create account.",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -163,8 +173,6 @@ export function SignupForm() {
 
       <p className={styles.fineprint}>
         By creating an account you agree to our terms and privacy notice.
-        Mock signup — no backend is contacted. Real signup will connect to the
-        Marijoa backend during the integration phase.
       </p>
     </>
   );

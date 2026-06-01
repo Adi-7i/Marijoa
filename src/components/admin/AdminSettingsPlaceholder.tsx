@@ -42,7 +42,7 @@ export function AdminSettingsPlaceholder() {
         <div>
           <p className={styles.sectionTitle}>Organization Settings</p>
           <p className={styles.sectionSubtitle}>
-            Configuration options will be available in the integration phase.
+            Configuration options are coming soon.
           </p>
         </div>
       </div>

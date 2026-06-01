@@ -8,12 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Notice } from "@/components/ui/Notice";
 import { Divider } from "@/components/ui/Divider";
 import { Toaster } from "@/components/ui/Toaster";
-import {
-  showToast,
-  showMockNotice,
-  clearToasts,
-  MOCK_ACTION_NOTICE,
-} from "@/lib/toast";
+import { showToast, clearToasts } from "@/lib/toast";
 
 describe("Button", () => {
   it("renders children", () => {
@@ -170,11 +165,4 @@ describe("Toaster + toast manager", () => {
     expect(screen.queryByText("Bye soon")).not.toBeInTheDocument();
   });
 
-  it("showMockNotice uses the standard mock action notice text", () => {
-    render(<Toaster />);
-    act(() => {
-      showMockNotice();
-    });
-    expect(screen.getByText(MOCK_ACTION_NOTICE)).toBeInTheDocument();
-  });
 });

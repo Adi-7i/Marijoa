@@ -37,10 +37,11 @@ export function ForgotPasswordForm() {
           <span className={styles.successIcon} aria-hidden="true">
             <CheckIcon size={20} />
           </span>
-          <span className={styles.successTitle}>Mock reset link prepared</span>
+          <span className={styles.successTitle}>Reset link requested</span>
           <span className={styles.successDesc}>
-            Password reset flow will be connected during backend integration.
-            No real email has been sent.
+            If an account with that email exists, you&apos;ll receive a reset
+            link shortly. Password reset emails will be live once the backend
+            mailer is enabled.
           </span>
         </div>
         <p className={styles.footerCopy}>
@@ -57,8 +58,8 @@ export function ForgotPasswordForm() {
       <header className={styles.formHeader}>
         <h2 className={styles.formTitle}>Reset your password</h2>
         <p className={styles.formSubtitle}>
-          Enter the email tied to your Marijoa account and we&apos;ll send a
-          reset link once backend integration is live.
+          Enter the email tied to your Marijoa account and we&apos;ll send you
+          a reset link.
         </p>
       </header>
 
@@ -97,8 +98,7 @@ export function ForgotPasswordForm() {
       </p>
 
       <p className={styles.fineprint}>
-        Mock action — no email is sent. Real reset will connect to the Marijoa
-        backend during the integration phase.
+        Don&apos;t see the email? Check spam, then contact your admin.
       </p>
     </>
   );

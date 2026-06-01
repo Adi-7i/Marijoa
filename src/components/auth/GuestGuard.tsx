@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { isMockAuthenticated } from "@/lib/mock/mock-auth";
+import { useAuth } from "@/lib/auth/auth-context";
 import { Spinner } from "@/components/ui/Spinner";
 import styles from "./auth.module.css";
 
@@ -11,29 +11,23 @@ interface GuestGuardProps {
   redirectTo?: string;
 }
 
-// Mock auth only. Replace with backend session check during integration phase.
 export function GuestGuard({ children, redirectTo = "/chat" }: GuestGuardProps) {
   const router = useRouter();
-  const [status, setStatus] = useState<"checking" | "guest" | "redirecting">(
-    "checking"
-  );
+  const { status } = useAuth();
 
   useEffect(() => {
-    if (isMockAuthenticated()) {
-      setStatus("redirecting");
+    if (status === "authenticated") {
       router.replace(redirectTo);
-    } else {
-      setStatus("guest");
     }
-  }, [router, redirectTo]);
+  }, [redirectTo, router, status]);
 
-  if (status === "guest") return <>{children}</>;
+  if (status === "unauthenticated") return <>{children}</>;
 
   return (
     <div className={styles.guardScreen} role="status" aria-live="polite">
       <Spinner aria-label="Checking session" />
       <span className={styles.guardScreenText}>
-        {status === "redirecting" ? "Redirecting…" : "Checking session…"}
+        {status === "loading" ? "Checking session…" : "Redirecting…"}
       </span>
     </div>
   );

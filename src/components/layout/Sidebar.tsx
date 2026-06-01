@@ -9,7 +9,7 @@ import { UserProfile } from "@/components/chat/UserProfile";
 import { MarijoaMark, PanelIcon, PlusIcon, SearchIcon, SettingsIcon } from "@/components/chat/icons";
 import { ModeSwitcher } from "@/components/workspace/ModeSwitcher";
 import { WorkspaceList } from "@/components/workspace/WorkspaceList";
-import { mockLogout } from "@/lib/mock/mock-auth";
+import { useAuth } from "@/lib/auth/auth-context";
 import { showToast } from "@/lib/toast";
 import styles from "@/components/chat/chat-ui.module.css";
 
@@ -61,15 +61,15 @@ export function Sidebar({
   user,
 }: SidebarProps) {
   const router = useRouter();
+  const { logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Mock auth only. Replace with backend session invalidation during integration phase.
-  function handleLogout() {
-    mockLogout();
-    showToast("Signed out (mock).", { variant: "info" });
+  async function handleLogout() {
+    await logout();
+    showToast("Signed out.", { variant: "info" });
     router.replace("/login");
   }
 
@@ -154,7 +154,6 @@ export function Sidebar({
       {mode === "organization" && onWorkspaceChange && currentOrg && (
         <WorkspaceList
           orgName={currentOrg.name}
-          orgRole={currentOrg.role}
           workspaces={workspaces}
           selectedId={selectedWorkspaceId}
           onSelect={onWorkspaceChange}

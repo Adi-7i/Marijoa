@@ -2,22 +2,25 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { isMockAuthenticated } from "@/lib/mock/mock-auth";
+import { useAuth } from "@/lib/auth/auth-context";
 import { Spinner } from "@/components/ui/Spinner";
 import styles from "@/components/auth/auth.module.css";
 
-// Mock auth only. Replace with backend session check during integration phase.
 export default function HomePage() {
   const router = useRouter();
+  const { status } = useAuth();
 
   useEffect(() => {
-    router.replace(isMockAuthenticated() ? "/chat" : "/login");
-  }, [router]);
+    if (status === "authenticated") router.replace("/chat");
+    else if (status === "unauthenticated") router.replace("/login");
+  }, [router, status]);
 
   return (
     <div className={styles.guardScreen} role="status" aria-live="polite">
       <Spinner aria-label="Loading" />
-      <span className={styles.guardScreenText}>Redirecting…</span>
+      <span className={styles.guardScreenText}>
+        {status === "loading" ? "Checking session…" : "Redirecting…"}
+      </span>
     </div>
   );
 }

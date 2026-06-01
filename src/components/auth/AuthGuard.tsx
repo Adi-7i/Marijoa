@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { isMockAuthenticated } from "@/lib/mock/mock-auth";
+import { useAuth } from "@/lib/auth/auth-context";
 import { Spinner } from "@/components/ui/Spinner";
+import { Notice } from "@/components/ui/Notice";
 import styles from "./auth.module.css";
 
 interface AuthGuardProps {
@@ -11,30 +12,39 @@ interface AuthGuardProps {
   redirectTo?: string;
 }
 
-// Mock auth only. Replace with backend session check during integration phase.
 export function AuthGuard({ children, redirectTo = "/login" }: AuthGuardProps) {
   const router = useRouter();
-  const [status, setStatus] = useState<"checking" | "authed" | "redirecting">(
-    "checking"
-  );
+  const { status, bootstrapError, refresh } = useAuth();
 
   useEffect(() => {
-    if (isMockAuthenticated()) {
-      setStatus("authed");
-    } else {
-      setStatus("redirecting");
+    if (status === "unauthenticated") {
       router.replace(redirectTo);
     }
-  }, [router, redirectTo]);
+  }, [redirectTo, router, status]);
 
-  if (status === "authed") return <>{children}</>;
+  if (status === "authenticated") return <>{children}</>;
 
   return (
     <div className={styles.guardScreen} role="status" aria-live="polite">
       <Spinner aria-label="Checking session" />
       <span className={styles.guardScreenText}>
-        {status === "redirecting" ? "Redirecting…" : "Checking session…"}
+        {status === "loading" ? "Checking session…" : "Redirecting…"}
       </span>
+      {bootstrapError && status !== "loading" && (
+        <div style={{ maxWidth: 420 }}>
+          <Notice>
+            <span role="alert">{bootstrapError}</span>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className={styles.inlineLink}
+              style={{ marginLeft: 8 }}
+            >
+              Retry
+            </button>
+          </Notice>
+        </div>
+      )}
     </div>
   );
 }

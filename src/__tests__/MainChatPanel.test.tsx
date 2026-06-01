@@ -7,7 +7,7 @@ describe("MainChatPanel — empty state (no chat selected)", () => {
     render(<MainChatPanel />);
     // aria-label is USER_GREETING; text content is the fallback prompt
     expect(
-      screen.getByRole("heading", { name: /hello kakasi/i })
+      screen.getByRole("heading", { name: /welcome to marijoa/i })
     ).toBeInTheDocument();
   });
 
