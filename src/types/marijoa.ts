@@ -142,6 +142,50 @@ export interface AuditLog {
   createdAt: number;
 }
 
+export type InvitationStatus =
+  | "PENDING_SIGNUP"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "EXPIRED"
+  | "CANCELLED";
+
+export type InvitableRole = "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
+
+export interface OrganizationInvitation {
+  id: string;
+  organizationId: string;
+  email: string;
+  role: InvitableRole;
+  status: InvitationStatus;
+  invitedBy: string;
+  acceptedUserId?: string;
+  expiresAt: number;
+  createdAt: number;
+  acceptedAt?: number;
+  approvedAt?: number;
+  rejectedAt?: number;
+}
+
+export interface OrganizationInvitationWithUrl extends OrganizationInvitation {
+  inviteUrl: string;
+}
+
+export interface InvitationValidation {
+  valid: boolean;
+  organizationName: string;
+  email: string;
+  role: InvitableRole;
+  status: InvitationStatus;
+  expiresAt: number;
+}
+
+export interface InvitationAcceptResult {
+  status: InvitationStatus;
+  organizationName: string;
+  message: string;
+}
+
 export interface AdminUsageSummary {
   organizationId: string;
   usersCount: number;

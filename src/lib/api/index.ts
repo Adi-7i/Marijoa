@@ -20,6 +20,7 @@ export * as aiApi from "./ai";
 export * as artifactsApi from "./artifacts";
 export * as filesApi from "./files";
 export * as adminApi from "./admin";
+export * as invitationsApi from "./invitations";
 
 export type { AuthSession } from "./auth";
 export type { PersonalContext } from "./personal";

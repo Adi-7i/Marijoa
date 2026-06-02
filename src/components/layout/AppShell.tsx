@@ -13,6 +13,8 @@ import { RightPanel } from "@/components/layout/RightPanel";
 import { OrganizationOverview } from "@/components/organization/OrganizationOverview";
 import { OrganizationEmptyState } from "@/components/organization/OrganizationEmptyState";
 import { CreateOrganizationModal } from "@/components/organization/CreateOrganizationModal";
+import { AddWorkspaceModal } from "@/components/organization/AddWorkspaceModal";
+import { InviteMemberModal } from "@/components/organization/InviteMemberModal";
 import { WorkspaceOverview } from "@/components/organization/WorkspaceOverview";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { Spinner } from "@/components/ui/Spinner";
@@ -81,6 +83,8 @@ export function AppShell() {
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("artifacts");
   const [showCreateOrg, setShowCreateOrg] = useState(false);
+  const [showAddWorkspace, setShowAddWorkspace] = useState(false);
+  const [showInviteMember, setShowInviteMember] = useState(false);
 
   // ---- Once personal context is ready, bootstrap default selection ----
   // Only runs once at the start (mode is "personal" by default). After the
@@ -249,6 +253,42 @@ export function AppShell() {
     setRightPanelTab("files");
   }, []);
 
+  const handleOpenAddWorkspace = useCallback(() => {
+    if (!currentOrg || currentOrg.type !== "COMPANY") return;
+    setShowAddWorkspace(true);
+  }, [currentOrg]);
+
+  const handleCloseAddWorkspace = useCallback(() => {
+    setShowAddWorkspace(false);
+  }, []);
+
+  const handleWorkspaceCreated = useCallback(
+    async (workspace: Workspace) => {
+      setShowAddWorkspace(false);
+      await workspacesRes.refresh();
+      setSelectedWorkspaceId(workspace.id);
+      setSelectedChatId(null);
+      setResetSignal((s) => s + 1);
+      showToast(`Workspace "${workspace.name}" created.`, { variant: "success" });
+    },
+    [workspacesRes]
+  );
+
+  const handleOpenInviteMember = useCallback(() => {
+    if (!currentOrg || currentOrg.type !== "COMPANY") return;
+    setShowInviteMember(true);
+  }, [currentOrg]);
+
+  const handleCloseInviteMember = useCallback(() => {
+    setShowInviteMember(false);
+  }, []);
+
+  const handleMemberInvited = useCallback(() => {
+    // No active membership is created here — just refresh members so the
+    // count is accurate after admin approval is granted later.
+    void membersRes.refresh();
+  }, [membersRes]);
+
   const handleWorkspaceChange = useCallback((workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
     setSelectedChatId(null);
@@ -405,13 +445,13 @@ export function AppShell() {
       const key = event.key.toLowerCase();
       if ((event.metaKey || event.ctrlKey) && key === "k") {
         event.preventDefault();
-        startNewChat();
+        if (selectedWorkspaceId) startNewChat();
       }
       if (event.key === "Escape") setDrawerOpen(false);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [startNewChat]);
+  }, [startNewChat, selectedWorkspaceId]);
 
   // ---- Loading / error states for bootstrap ----
   if (personal.isLoading || (personal.status === "idle" && !personal.data)) {
@@ -439,6 +479,7 @@ export function AppShell() {
     <div className={styles.appShell}>
       <Sidebar
         onNewChat={startNewChat}
+        canStartNewChat={Boolean(selectedWorkspaceId)}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={sidebarWidth}
@@ -471,6 +512,7 @@ export function AppShell() {
           organizationId={currentOrg.id}
           org={currentOrg}
           currentUserRole={currentUserRole}
+          onMembersChanged={() => void membersRes.refresh()}
         />
       )}
 
@@ -493,6 +535,12 @@ export function AppShell() {
           workspaces={currentWorkspaces}
           members={currentMembers}
           onSelectWorkspace={handleWorkspaceChange}
+          onAddWorkspace={
+            currentOrg.type === "COMPANY" ? handleOpenAddWorkspace : undefined
+          }
+          onInviteMember={
+            currentOrg.type === "COMPANY" ? handleOpenInviteMember : undefined
+          }
         />
       )}
 
@@ -531,6 +579,22 @@ export function AppShell() {
         <CreateOrganizationModal
           onSuccess={handleOrgCreated}
           onCancel={handleCloseCreateOrg}
+        />
+      )}
+
+      {showAddWorkspace && currentOrg && currentOrg.type === "COMPANY" && (
+        <AddWorkspaceModal
+          organizationId={currentOrg.id}
+          onSuccess={handleWorkspaceCreated}
+          onCancel={handleCloseAddWorkspace}
+        />
+      )}
+
+      {showInviteMember && currentOrg && currentOrg.type === "COMPANY" && (
+        <InviteMemberModal
+          organizationId={currentOrg.id}
+          onInvited={handleMemberInvited}
+          onClose={handleCloseInviteMember}
         />
       )}
 

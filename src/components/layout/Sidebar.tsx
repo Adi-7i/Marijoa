@@ -36,6 +36,9 @@ interface SidebarProps {
   selectedChatId?: string | null;
   onChatSelect?: (chatId: string) => void;
   user?: User;
+  // True when the current selection allows starting a new chat. Disabled when
+  // organization mode has no workspace selected.
+  canStartNewChat?: boolean;
 }
 
 export function Sidebar({
@@ -59,6 +62,7 @@ export function Sidebar({
   selectedChatId = null,
   onChatSelect,
   user,
+  canStartNewChat = true,
 }: SidebarProps) {
   const router = useRouter();
   const { logout } = useAuth();
@@ -165,7 +169,19 @@ export function Sidebar({
 
       {/* New Chat */}
       <div className={styles.newChatWrap}>
-        <button type="button" onClick={onNewChat} aria-label="Start a new chat" className={styles.newChat}>
+        <button
+          type="button"
+          onClick={onNewChat}
+          aria-label="Start a new chat"
+          className={styles.newChat}
+          disabled={!canStartNewChat}
+          title={
+            canStartNewChat
+              ? undefined
+              : "Create a workspace first."
+          }
+          style={!canStartNewChat ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+        >
           <PlusIcon />
           <span>New Chat</span>
         </button>

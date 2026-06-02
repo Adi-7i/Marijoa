@@ -9,6 +9,10 @@ from app.modules.auth.router import router as auth_router
 from app.modules.chats.router import router as chats_router
 from app.modules.files.router import router as files_router
 from app.modules.health.router import router as health_router
+from app.modules.invitations.router import (
+    admin_router as invitations_admin_router,
+    public_router as invitations_public_router,
+)
 from app.modules.messages.router import router as messages_router
 from app.modules.organizations.router import router as organizations_router
 from app.modules.personal.router import router as personal_router
@@ -21,6 +25,8 @@ def build_api_router(prefix: str) -> APIRouter:
     router.include_router(auth_router)
     router.include_router(personal_router)
     router.include_router(organizations_router)
+    router.include_router(invitations_admin_router)
+    router.include_router(invitations_public_router)
     router.include_router(workspaces_router)
     router.include_router(chats_router)
     router.include_router(messages_router)

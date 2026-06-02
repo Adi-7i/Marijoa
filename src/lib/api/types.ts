@@ -134,6 +134,67 @@ export interface OrganizationMemberUpdateRequest {
   status?: OrgMemberStatus | null;
 }
 
+// Invitations ----------------------------------------------------------------
+
+export type InvitationStatus =
+  | "PENDING_SIGNUP"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "EXPIRED"
+  | "CANCELLED";
+
+export type InvitableRole = "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
+
+export interface InvitationRead {
+  id: UUID;
+  organization_id: UUID;
+  email: string;
+  role: InvitableRole;
+  status: InvitationStatus;
+  invited_by: UUID;
+  accepted_user_id: UUID | null;
+  expires_at: ISODateString;
+  created_at: ISODateString;
+  accepted_at: ISODateString | null;
+  approved_at: ISODateString | null;
+  rejected_at: ISODateString | null;
+}
+
+export interface InvitationCreateResponse extends InvitationRead {
+  invite_url: string;
+}
+
+export interface InvitationCreateRequest {
+  email: string;
+  role: InvitableRole;
+}
+
+export interface InvitationValidateResponse {
+  valid: boolean;
+  organization_name: string;
+  email: string;
+  role: InvitableRole;
+  status: InvitationStatus;
+  expires_at: ISODateString;
+}
+
+export interface InvitationAcceptRequest {
+  token: string;
+  full_name: string;
+  password: string;
+}
+
+export interface InvitationAcceptResponse {
+  status: InvitationStatus;
+  organization_name: string;
+  message: string;
+}
+
+export interface InvitationAcceptExistingRequest {
+  token: string;
+}
+
 // Workspaces -----------------------------------------------------------------
 
 export interface WorkspaceRead {

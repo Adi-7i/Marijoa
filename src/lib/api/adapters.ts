@@ -17,8 +17,14 @@ import type {
   Chat,
   FileItem,
   FileStatus,
+  InvitableRole,
+  InvitationAcceptResult,
+  InvitationStatus,
+  InvitationValidation,
   Message,
   Organization,
+  OrganizationInvitation,
+  OrganizationInvitationWithUrl,
   OrganizationMember,
   OrganizationRole,
   OrganizationType,
@@ -39,6 +45,10 @@ import type {
   ChatRead,
   FileRead,
   FileStatusApi,
+  InvitationAcceptResponse,
+  InvitationCreateResponse,
+  InvitationRead,
+  InvitationValidateResponse,
   MessageRead,
   OrganizationMemberRead,
   OrganizationRead,
@@ -151,6 +161,85 @@ export function adaptOrganizationMember(raw: OrganizationMemberRead): Organizati
     role: normalizeOrgRole(raw.role),
     status: normalizeMemberStatus(raw.status),
     joinedAt: isoToMs(raw.created_at),
+  };
+}
+
+// --- invitations ------------------------------------------------------------
+
+const VALID_INVITATION_STATUS: ReadonlySet<InvitationStatus> = new Set([
+  "PENDING_SIGNUP",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+  "EXPIRED",
+  "CANCELLED",
+]);
+
+function normalizeInvitationStatus(status: string): InvitationStatus {
+  return VALID_INVITATION_STATUS.has(status as InvitationStatus)
+    ? (status as InvitationStatus)
+    : "PENDING_SIGNUP";
+}
+
+const VALID_INVITABLE_ROLE: ReadonlySet<InvitableRole> = new Set([
+  "ADMIN",
+  "MANAGER",
+  "MEMBER",
+  "VIEWER",
+]);
+
+function normalizeInvitableRole(role: string): InvitableRole {
+  return VALID_INVITABLE_ROLE.has(role as InvitableRole)
+    ? (role as InvitableRole)
+    : "MEMBER";
+}
+
+export function adaptInvitation(raw: InvitationRead): OrganizationInvitation {
+  return {
+    id: raw.id,
+    organizationId: raw.organization_id,
+    email: raw.email,
+    role: normalizeInvitableRole(raw.role),
+    status: normalizeInvitationStatus(raw.status),
+    invitedBy: raw.invited_by,
+    acceptedUserId: raw.accepted_user_id ?? undefined,
+    expiresAt: isoToMs(raw.expires_at),
+    createdAt: isoToMs(raw.created_at),
+    acceptedAt: raw.accepted_at ? isoToMs(raw.accepted_at) : undefined,
+    approvedAt: raw.approved_at ? isoToMs(raw.approved_at) : undefined,
+    rejectedAt: raw.rejected_at ? isoToMs(raw.rejected_at) : undefined,
+  };
+}
+
+export function adaptInvitationCreate(
+  raw: InvitationCreateResponse
+): OrganizationInvitationWithUrl {
+  return {
+    ...adaptInvitation(raw),
+    inviteUrl: raw.invite_url,
+  };
+}
+
+export function adaptInvitationValidate(
+  raw: InvitationValidateResponse
+): InvitationValidation {
+  return {
+    valid: raw.valid,
+    organizationName: raw.organization_name,
+    email: raw.email,
+    role: normalizeInvitableRole(raw.role),
+    status: normalizeInvitationStatus(raw.status),
+    expiresAt: isoToMs(raw.expires_at),
+  };
+}
+
+export function adaptInvitationAccept(
+  raw: InvitationAcceptResponse
+): InvitationAcceptResult {
+  return {
+    status: normalizeInvitationStatus(raw.status),
+    organizationName: raw.organization_name,
+    message: raw.message,
   };
 }
 

@@ -97,6 +97,12 @@ class Settings(BaseSettings):
     AI_MAX_HISTORY_MESSAGES: int = 20
 
     # ------------------------------------------------------------------
+    # Frontend / Invitations
+    # ------------------------------------------------------------------
+    FRONTEND_APP_URL: str = "http://localhost:3000"
+    INVITATION_TOKEN_EXPIRE_DAYS: int = 7
+
+    # ------------------------------------------------------------------
     # Background Jobs (RQ)
     # ------------------------------------------------------------------
     BACKGROUND_JOBS_ENABLED: bool = True
