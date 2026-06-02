@@ -103,6 +103,42 @@ class Settings(BaseSettings):
     INVITATION_TOKEN_EXPIRE_DAYS: int = 7
 
     # ------------------------------------------------------------------
+    # Web Search (Global Internet Access Layer)
+    # ------------------------------------------------------------------
+    WEB_SEARCH_ENABLED: bool = True
+    WEB_SEARCH_PROVIDER: str = "searxng"
+    WEB_SEARCH_DEFAULT_MODE: str = "auto"
+
+    SEARXNG_BASE_URL: str = ""
+    SEARXNG_SEARCH_PATH: str = "/search"
+    SEARXNG_TIMEOUT_SECONDS: int = 10
+    SEARXNG_MAX_RESULTS: int = 8
+    SEARXNG_SAFESEARCH: int = 1
+
+    WEB_SEARCH_RULE_BASED_ENABLED: bool = True
+    WEB_SEARCH_LLM_DECIDER_ENABLED: bool = True
+    WEB_SEARCH_AMBIGUOUS_DECIDER_ENABLED: bool = True
+    WEB_SEARCH_MAX_QUERIES: int = 3
+
+    WEB_SEARCH_RESULT_MAX_SNIPPET_CHARS: int = 500
+    WEB_SEARCH_CONTEXT_MAX_CHARS: int = 6000
+
+    @field_validator("WEB_SEARCH_DEFAULT_MODE")
+    @classmethod
+    def validate_web_search_default_mode(cls, v: str) -> str:
+        allowed = {"auto", "off", "search"}
+        if v not in allowed:
+            raise ValueError(f"WEB_SEARCH_DEFAULT_MODE must be one of {allowed}")
+        return v
+
+    @field_validator("SEARXNG_SAFESEARCH")
+    @classmethod
+    def validate_safesearch(cls, v: int) -> int:
+        if v not in (0, 1, 2):
+            raise ValueError("SEARXNG_SAFESEARCH must be 0, 1, or 2")
+        return v
+
+    # ------------------------------------------------------------------
     # Background Jobs (RQ)
     # ------------------------------------------------------------------
     BACKGROUND_JOBS_ENABLED: bool = True

@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import Field
 
 from app.modules.messages.schemas import MessageRead
+from app.modules.web_search.schemas import WebMode
 from app.schemas.base import AppSchema
 
 
@@ -39,9 +40,15 @@ class AICompletionResult:
 
 
 class AIRespondRequest(AppSchema):
-    """Request body for triggering an AI response in a chat."""
+    """Request body for triggering an AI response in a chat.
+
+    ``web_mode`` controls whether the gateway should consult the live web
+    search provider for this turn. Defaults to ``auto`` so existing callers
+    do not need to pass it explicitly.
+    """
 
     content: str = Field(min_length=1, max_length=20000)
+    web_mode: WebMode = Field(default=WebMode.AUTO)
 
 
 class AIRespondResponse(AppSchema):

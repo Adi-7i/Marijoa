@@ -71,6 +71,19 @@ export interface Message {
   content: string;
   timestamp: number;
   isStreaming?: boolean;
+  sources?: CitationSource[];
+  webSearchUsed?: boolean;
+  webMode?: WebMode;
+}
+
+export type WebMode = "auto" | "off" | "search";
+
+export interface CitationSource {
+  index: number;
+  title: string;
+  url: string;
+  snippet?: string;
+  domain?: string;
 }
 
 export interface Artifact {

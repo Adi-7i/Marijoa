@@ -16,6 +16,7 @@ from app.modules.invitations.router import (
 from app.modules.messages.router import router as messages_router
 from app.modules.organizations.router import router as organizations_router
 from app.modules.personal.router import router as personal_router
+from app.modules.web_search.router import router as web_search_router
 from app.modules.workspaces.router import router as workspaces_router
 
 
@@ -31,6 +32,7 @@ def build_api_router(prefix: str) -> APIRouter:
     router.include_router(chats_router)
     router.include_router(messages_router)
     router.include_router(ai_gateway_router)
+    router.include_router(web_search_router)
     router.include_router(artifacts_router)
     router.include_router(files_router)
     router.include_router(admin_router)

@@ -14,6 +14,7 @@ import {
   ThumbsUpIcon,
 } from "@/components/chat/icons";
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage";
+import { SourceCitations } from "@/components/chat/SourceCitations";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -60,6 +61,12 @@ function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
         </div>
 
         <div className={`${styles.assistantText} ${styles.assistantProse ?? ""}`.trim()}>
+          {message.searchStatus === "searching" && (
+            <p className={styles.searchingStatus} role="status">
+              <span className={styles.searchingDot} aria-hidden="true" />
+              Searching the web…
+            </p>
+          )}
           {message.content || !message.isStreaming ? (
             <MarkdownMessage content={message.content} />
           ) : (
@@ -69,6 +76,7 @@ function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
               <span className={styles.dot} />
             </span>
           )}
+          <SourceCitations sources={message.sources} />
         </div>
 
         <div className={styles.actions} aria-label="Message actions">

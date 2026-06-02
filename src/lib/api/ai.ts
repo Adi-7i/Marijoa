@@ -5,17 +5,26 @@ import { ApiError } from "./errors";
 import { apiClient } from "./client";
 import { clearTokens, getAccessToken } from "@/lib/auth/token-store";
 import { readSSEStream, type SSEEvent } from "@/lib/sse/parse-sse";
-import { adaptMessage } from "./adapters";
+import { adaptCitationSource, adaptMessage } from "./adapters";
 import type { AIRespondRequest, AIRespondResponse } from "./types";
-import type { Message } from "@/types/marijoa";
+import type { CitationSource, Message, WebMode } from "@/types/marijoa";
 
 export interface AIRespondResult {
   userMessage: Message;
   assistantMessage: Message;
 }
 
-export async function aiRespond(chatId: string, content: string): Promise<AIRespondResult> {
+export interface AIRespondOptions {
+  webMode?: WebMode;
+}
+
+export async function aiRespond(
+  chatId: string,
+  content: string,
+  options: AIRespondOptions = {}
+): Promise<AIRespondResult> {
   const body: AIRespondRequest = { content };
+  if (options.webMode) body.web_mode = options.webMode;
   const payload = await apiClient.post<AIRespondResponse>(`/chats/${chatId}/ai/respond`, {
     json: body,
   });
@@ -35,6 +44,7 @@ export interface AIStreamStartPayload {
 export interface AIStreamDonePayload {
   chatId: string;
   messageId: string | null;
+  webSearchUsed?: boolean;
 }
 
 export interface AIStreamErrorPayload {
@@ -42,15 +52,27 @@ export interface AIStreamErrorPayload {
   message: string;
 }
 
+export interface AIStreamWebSearchStartPayload {
+  mode: WebMode;
+  queries: string[];
+}
+
+export interface AIStreamWebSourcesPayload {
+  sources: CitationSource[];
+}
+
 export interface AIStreamHandlers {
   onStart?: (payload: AIStreamStartPayload) => void;
   onToken?: (content: string) => void;
   onDone?: (payload: AIStreamDonePayload) => void;
   onError?: (payload: AIStreamErrorPayload) => void;
+  onWebSearchStart?: (payload: AIStreamWebSearchStartPayload) => void;
+  onWebSources?: (payload: AIStreamWebSourcesPayload) => void;
 }
 
 export interface AIStreamOptions extends AIStreamHandlers {
   signal?: AbortSignal;
+  webMode?: WebMode;
 }
 
 function safeJsonParse(text: string): Record<string, unknown> | null {
@@ -63,6 +85,14 @@ function safeJsonParse(text: string): Record<string, unknown> | null {
   }
 }
 
+const VALID_WEB_MODES: ReadonlySet<WebMode> = new Set(["auto", "off", "search"]);
+
+function coerceWebMode(value: unknown): WebMode {
+  return typeof value === "string" && VALID_WEB_MODES.has(value as WebMode)
+    ? (value as WebMode)
+    : "auto";
+}
+
 function dispatchEvent(event: SSEEvent, handlers: AIStreamHandlers): boolean {
   const data = safeJsonParse(event.data) ?? {};
   switch (event.event) {
@@ -71,6 +101,23 @@ function dispatchEvent(event: SSEEvent, handlers: AIStreamHandlers): boolean {
         chatId: String(data.chat_id ?? ""),
         userMessageId: String(data.user_message_id ?? ""),
       });
+      return false;
+    }
+    case "web_search_start": {
+      const rawQueries = Array.isArray(data.queries) ? data.queries : [];
+      const queries = rawQueries.filter((q): q is string => typeof q === "string");
+      handlers.onWebSearchStart?.({
+        mode: coerceWebMode(data.mode),
+        queries,
+      });
+      return false;
+    }
+    case "web_sources": {
+      const rawSources = Array.isArray(data.sources) ? data.sources : [];
+      const sources = rawSources
+        .map((s) => adaptCitationSource(s))
+        .filter((s): s is CitationSource => s !== null);
+      handlers.onWebSources?.({ sources });
       return false;
     }
     case "token": {
@@ -83,6 +130,8 @@ function dispatchEvent(event: SSEEvent, handlers: AIStreamHandlers): boolean {
       handlers.onDone?.({
         chatId: String(data.chat_id ?? ""),
         messageId,
+        webSearchUsed:
+          typeof data.web_search_used === "boolean" ? data.web_search_used : undefined,
       });
       return true;
     }
@@ -103,7 +152,7 @@ export async function streamAIResponse(
   content: string,
   options: AIStreamOptions = {}
 ): Promise<void> {
-  const { signal, ...handlers } = options;
+  const { signal, webMode, ...handlers } = options;
 
   const token = getAccessToken();
   const headers: Record<string, string> = {
@@ -112,12 +161,15 @@ export async function streamAIResponse(
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
+  const body: AIRespondRequest = { content };
+  if (webMode) body.web_mode = webMode;
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/chats/${chatId}/ai/stream`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ content } satisfies AIRespondRequest),
+      body: JSON.stringify(body),
       signal,
       credentials: "omit",
     });

@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
-import type { ArtifactType } from "@/types/marijoa";
+import type { ArtifactType, WebMode } from "@/types/marijoa";
 import { APP_NAME, DISCLAIMER_TEXT, USER_GREETING } from "@/lib/constants";
 import styles from "@/components/chat/chat-ui.module.css";
 import { ArrowDownIcon, MarijoaMark, MenuIcon, PanelRightIcon, ShareIcon } from "@/components/chat/icons";
@@ -60,6 +60,8 @@ interface ChatAreaProps {
   rightPanelOpen?: boolean;
   onToggleRightPanel?: () => void;
   onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
+  webMode?: WebMode;
+  onWebModeChange?: (mode: WebMode) => void;
 }
 
 interface PromptSuggestion {
@@ -101,6 +103,8 @@ export function ChatArea({
   rightPanelOpen = false,
   onToggleRightPanel,
   onSaveAsArtifact,
+  webMode,
+  onWebModeChange,
 }: ChatAreaProps) {
   const [saveMessage, setSaveMessage] = useState<ChatMessageType | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -225,7 +229,13 @@ export function ChatArea({
                   </button>
                 ))}
               </div>
-              <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
+              <InputBar
+                onSend={onSend}
+                onAttach={onAttach}
+                autoFocus
+                webMode={webMode}
+                onWebModeChange={onWebModeChange}
+              />
             </div>
           </div>
         )}

@@ -246,17 +246,20 @@ def test_save_assistant_message_called_after_provider_response() -> None:
 
         ai_respond(mock_db, chat_id=chat_id, content=content, user_id=user_id)
 
-    mock_save_asst.assert_called_once_with(
-        mock_db,
-        chat_id=chat_id,
-        content=ai_result.content,
-        model=ai_result.model,
-        metadata_json={
-            "provider": ai_result.provider,
-            "usage": ai_result.usage,
-            "latency_ms": ai_result.latency_ms,
-        },
-    )
+    mock_save_asst.assert_called_once()
+    call_kwargs = mock_save_asst.call_args.kwargs
+    assert call_kwargs["chat_id"] == chat_id
+    assert call_kwargs["content"] == ai_result.content
+    assert call_kwargs["model"] == ai_result.model
+    meta = call_kwargs["metadata_json"]
+    assert meta["provider"] == ai_result.provider
+    assert meta["usage"] == ai_result.usage
+    assert meta["latency_ms"] == ai_result.latency_ms
+    # Web search metadata is always present, even when search was not used.
+    assert meta["web_search_used"] is False
+    assert meta["web_mode"] == "auto"
+    assert meta["sources"] == []
+    assert "search_decision" in meta
 
 
 # ---------------------------------------------------------------------------

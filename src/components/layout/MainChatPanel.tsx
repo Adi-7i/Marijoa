@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { Notice } from "@/components/ui/Notice";
 import { useChat } from "@/hooks/useChat";
-import type { AppMode, ArtifactType, Chat } from "@/types/marijoa";
+import type { AppMode, ArtifactType, Chat, WebMode } from "@/types/marijoa";
 import styles from "@/components/chat/chat-ui.module.css";
 
 interface MainChatPanelProps {
@@ -67,9 +67,11 @@ export function MainChatPanel({
   const contextSubtitle =
     orgName && workspaceName ? `${orgName} · ${workspaceName}` : workspaceName ?? orgName;
 
+  const [webMode, setWebMode] = useState<WebMode>("auto");
+
   const handleSend = (content: string) => {
     if (!workspaceId) return;
-    void sendMessage(content);
+    void sendMessage(content, { webMode });
   };
 
   return (
@@ -92,6 +94,8 @@ export function MainChatPanel({
         rightPanelOpen={rightPanelOpen}
         onToggleRightPanel={onToggleRightPanel}
         onSaveAsArtifact={onSaveAsArtifact}
+        webMode={webMode}
+        onWebModeChange={setWebMode}
       />
     </main>
   );

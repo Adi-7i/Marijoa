@@ -13,15 +13,26 @@ import { chatMessageSchema } from "@/lib/validation";
 import { COMPOSER_MAX_LENGTH, COMPOSER_PLACEHOLDER } from "@/lib/constants";
 import styles from "@/components/chat/chat-ui.module.css";
 import { ArrowUpIcon, MicIcon, PlusIcon } from "@/components/chat/icons";
+import { WebModeSelector } from "@/components/chat/WebModeSelector";
+import type { WebMode } from "@/types/marijoa";
 
 interface InputBarProps {
   onSend?: (message: string) => void;
   onAttach?: () => void;
   autoFocus?: boolean;
   className?: string;
+  webMode?: WebMode;
+  onWebModeChange?: (mode: WebMode) => void;
 }
 
-export function InputBar({ onSend, onAttach, autoFocus = false, className }: InputBarProps) {
+export function InputBar({
+  onSend,
+  onAttach,
+  autoFocus = false,
+  className,
+  webMode,
+  onWebModeChange,
+}: InputBarProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -154,6 +165,11 @@ export function InputBar({ onSend, onAttach, autoFocus = false, className }: Inp
         <p id="composer-error" role="alert" className={styles.validation}>
           {error}
         </p>
+      )}
+      {webMode !== undefined && onWebModeChange && (
+        <div className={styles.inputControls}>
+          <WebModeSelector mode={webMode} onChange={onWebModeChange} />
+        </div>
       )}
     </div>
   );

@@ -40,6 +40,7 @@ async def ai_respond(
         chat_id=chat_id,
         content=data.content,
         user_id=current_user.id,
+        web_mode=data.web_mode,
     )
 
 
@@ -60,7 +61,13 @@ async def stream_ai_response(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_authenticated_user)],
 ) -> StreamingResponse:
-    gen = ai_stream(db, chat_id=chat_id, content=body.content, user_id=current_user.id)
+    gen = ai_stream(
+        db,
+        chat_id=chat_id,
+        content=body.content,
+        user_id=current_user.id,
+        web_mode=body.web_mode,
+    )
     return StreamingResponse(
         gen,
         media_type="text/event-stream",

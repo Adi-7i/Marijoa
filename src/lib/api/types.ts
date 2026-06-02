@@ -275,13 +275,45 @@ export interface MessageCreateRequest {
 
 // AI Gateway -----------------------------------------------------------------
 
+export type WebModeApi = "auto" | "off" | "search";
+
+export interface CitationSourceApi {
+  index: number;
+  title: string;
+  url: string;
+  snippet?: string | null;
+  domain?: string | null;
+}
+
 export interface AIRespondRequest {
   content: string;
+  web_mode?: WebModeApi;
 }
 
 export interface AIRespondResponse {
   user_message: MessageRead;
   assistant_message: MessageRead;
+}
+
+// Web search (admin diagnostic endpoint) -------------------------------------
+
+export interface WebSearchAdminRequest {
+  query: string;
+}
+
+export interface WebSearchResultApi {
+  title: string;
+  url: string;
+  snippet?: string | null;
+  source?: string | null;
+  engine?: string | null;
+  score?: number | null;
+  published_date?: string | null;
+}
+
+export interface WebSearchAdminResponse {
+  query: string;
+  results: WebSearchResultApi[];
 }
 
 // Artifacts ------------------------------------------------------------------

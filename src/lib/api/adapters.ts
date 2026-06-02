@@ -15,6 +15,7 @@ import type {
   AuditLog,
   AuditAction,
   Chat,
+  CitationSource,
   FileItem,
   FileStatus,
   InvitableRole,
@@ -29,6 +30,7 @@ import type {
   OrganizationRole,
   OrganizationType,
   User,
+  WebMode,
   Workspace,
   WorkspaceContext,
   AdminUsageSummary,
@@ -302,13 +304,58 @@ function normalizeMessageRole(role: string): MessageRole {
   return VALID_MESSAGE_ROLE.has(role as MessageRole) ? (role as MessageRole) : "user";
 }
 
+const VALID_WEB_MODES: ReadonlySet<WebMode> = new Set(["auto", "off", "search"]);
+
+function normalizeWebMode(value: unknown): WebMode | undefined {
+  return typeof value === "string" && VALID_WEB_MODES.has(value as WebMode)
+    ? (value as WebMode)
+    : undefined;
+}
+
+export function adaptCitationSource(raw: unknown): CitationSource | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const index = typeof r.index === "number" ? r.index : Number(r.index);
+  const title = typeof r.title === "string" ? r.title : "";
+  const url = typeof r.url === "string" ? r.url : "";
+  if (!Number.isFinite(index) || !title || !url) return null;
+  return {
+    index,
+    title,
+    url,
+    snippet: typeof r.snippet === "string" ? r.snippet : undefined,
+    domain: typeof r.domain === "string" ? r.domain : undefined,
+  };
+}
+
+function extractSources(metadata: Record<string, unknown> | null): CitationSource[] | undefined {
+  if (!metadata) return undefined;
+  const raw = metadata.sources;
+  if (!Array.isArray(raw)) return undefined;
+  const sources = raw
+    .map(adaptCitationSource)
+    .filter((s): s is CitationSource => s !== null);
+  return sources.length > 0 ? sources : undefined;
+}
+
 export function adaptMessage(raw: MessageRead): Message {
+  const metadata = raw.metadata_json ?? null;
+  const sources = extractSources(metadata);
+  const webSearchUsed =
+    metadata && typeof metadata.web_search_used === "boolean"
+      ? (metadata.web_search_used as boolean)
+      : undefined;
+  const webMode = metadata ? normalizeWebMode(metadata.web_mode) : undefined;
+
   return {
     id: raw.id,
     chatId: raw.chat_id,
     role: normalizeMessageRole(raw.role),
     content: raw.content,
     timestamp: isoToMsRequired(raw.created_at),
+    sources,
+    webSearchUsed,
+    webMode,
   };
 }
 

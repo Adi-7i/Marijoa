@@ -6,7 +6,7 @@ import { listMessages } from "@/lib/api/messages";
 import { streamAIResponse } from "@/lib/api/ai";
 import { createChat as apiCreateChat } from "@/lib/api/chats";
 import type { ChatMessage } from "@/types/chat";
-import type { Chat, Message } from "@/types/marijoa";
+import type { Chat, Message, WebMode } from "@/types/marijoa";
 
 const STREAM_FLUSH_MS = 50;
 const MAX_VISIBLE_MESSAGES = 200;
@@ -19,19 +19,16 @@ function createLocalId(prefix: string): string {
 }
 
 function toChatMessage(message: Message): ChatMessage {
-  if (message.role !== "user" && message.role !== "assistant") {
-    return {
-      id: message.id,
-      role: "assistant",
-      content: message.content,
-      timestamp: message.timestamp,
-    };
-  }
+  const role: ChatMessage["role"] =
+    message.role === "user" || message.role === "assistant" ? message.role : "assistant";
   return {
     id: message.id,
-    role: message.role,
+    role,
     content: message.content,
     timestamp: message.timestamp,
+    sources: message.sources,
+    webSearchUsed: message.webSearchUsed,
+    webMode: message.webMode,
   };
 }
 
@@ -49,7 +46,7 @@ export interface UseChatResult {
   isThinking: boolean;
   isLoading: boolean;
   loadError: string | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, options?: { webMode?: WebMode }) => Promise<void>;
   reload: () => Promise<void>;
   reset: () => void;
 }
@@ -177,7 +174,7 @@ export function useChat({
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, options: { webMode?: WebMode } = {}) => {
       const trimmed = content.trim();
       if (!trimmed || !workspaceId) return;
 
@@ -245,11 +242,35 @@ export function useChat({
       try {
         await streamAIResponse(activeChatId, trimmed, {
           signal: controller.signal,
+          webMode: options.webMode,
           onStart: (payload) => {
             if (!payload.userMessageId) return;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === userLocalId ? { ...m, id: payload.userMessageId } : m
+              )
+            );
+          },
+          onWebSearchStart: () => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantLocalId
+                  ? { ...m, searchStatus: "searching" }
+                  : m
+              )
+            );
+          },
+          onWebSources: ({ sources }) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantLocalId
+                  ? {
+                      ...m,
+                      sources,
+                      searchStatus: "complete",
+                      webSearchUsed: sources.length > 0,
+                    }
+                  : m
               )
             );
           },
@@ -263,12 +284,20 @@ export function useChat({
               flushTimerRef.current = null;
             }
             flushBufferTo(assistantLocalId, true);
-            if (payload.messageId) {
-              const finalId = payload.messageId;
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantLocalId ? { ...m, id: finalId } : m))
-              );
-            }
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantLocalId) return m;
+                const updated: ChatMessage = {
+                  ...m,
+                  searchStatus: null,
+                };
+                if (payload.messageId) updated.id = payload.messageId;
+                if (payload.webSearchUsed !== undefined) {
+                  updated.webSearchUsed = payload.webSearchUsed;
+                }
+                return updated;
+              })
+            );
             clearActiveStream();
             onChatActivity?.();
           },
