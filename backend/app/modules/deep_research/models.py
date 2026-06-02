@@ -6,42 +6,8 @@ from uuid import UUID
 
 from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import UserDefinedType
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
-
-
-class Vector(UserDefinedType):
-    """Minimal pgvector SQLAlchemy type without requiring the pgvector package."""
-
-    cache_ok = True
-
-    def __init__(self, dimensions: int | None = None) -> None:
-        self.dimensions = dimensions or 1536
-
-    def get_col_spec(self, **kw: object) -> str:
-        return f"vector({self.dimensions})"
-
-    def bind_processor(self, dialect):  # type: ignore[no-untyped-def]
-        def process(value: list[float] | None) -> str | None:
-            if value is None:
-                return None
-            return "[" + ",".join(str(float(item)) for item in value) + "]"
-
-        return process
-
-    def result_processor(self, dialect, coltype):  # type: ignore[no-untyped-def]
-        def process(value: object) -> list[float] | None:
-            if value is None:
-                return None
-            if isinstance(value, list):
-                return [float(item) for item in value]
-            if isinstance(value, str):
-                cleaned = value.strip().strip("[]")
-                return [float(item) for item in cleaned.split(",") if item]
-            return None
-
-        return process
 
 
 class ResearchSessionStatus(str, Enum):
@@ -156,7 +122,10 @@ class DeepResearchChunk(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     char_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
+    # Stored as JSON because the current managed PostgreSQL server does not
+    # have pgvector installed. Evidence retrieval falls back lexically unless
+    # a future pgvector migration adds native vector search.
+    embedding: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 

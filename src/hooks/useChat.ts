@@ -151,6 +151,8 @@ export function useChat({
       setIsLoading(false);
       return;
     }
+    setMessages([]);
+    setIsThinking(false);
     void loadHistory(chatId);
   }, [chatId, cancelStream, loadHistory]);
 

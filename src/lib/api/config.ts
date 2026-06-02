@@ -17,8 +17,15 @@ function readEnv(): string | undefined {
 }
 
 export function getApiBaseUrl(): string {
-  const raw = readEnv() ?? FALLBACK_API_BASE_URL;
+  const raw = readEnv() ?? readBrowserDevFallback() ?? FALLBACK_API_BASE_URL;
   return raw.endsWith("/") ? raw.slice(0, -1) : raw;
 }
 
 export const API_BASE_URL = getApiBaseUrl();
+
+function readBrowserDevFallback(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const { protocol, hostname } = window.location;
+  if (!hostname || hostname === "0.0.0.0") return undefined;
+  return `${protocol}//${hostname}:8000/api/v1`;
+}

@@ -1,6 +1,7 @@
 /** TypeScript types for the Marijoa chat application */
 
 import type { CitationSource, WebMode } from "@/types/marijoa";
+import type { DeepResearchCardState } from "@/types/deep-research";
 
 export interface ChatHistoryItem {
   id: string;
@@ -14,10 +15,12 @@ export interface UserProfile {
 }
 
 export type MessageRole = "user" | "assistant";
+export type MessageKind = "chat" | "deep_research";
 
 export interface ChatMessage {
   id: string;
   role: MessageRole;
+  kind?: MessageKind;
   content: string;
   timestamp: number;
   thoughts?: string;
@@ -27,4 +30,5 @@ export interface ChatMessage {
   webMode?: WebMode;
   searchStatus?: "searching" | "complete" | null;
   searchQueries?: string[];
+  research?: DeepResearchCardState;
 }

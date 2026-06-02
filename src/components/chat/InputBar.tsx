@@ -27,6 +27,9 @@ interface InputBarProps {
   /** Web search toggle state (auto when true, off when false). */
   webSearchEnabled?: boolean;
   onWebSearchToggle?: (next: boolean) => void;
+  deepResearchEnabled?: boolean;
+  onDeepResearchToggle?: (next: boolean) => void;
+  placeholder?: string;
 }
 
 export function InputBar({
@@ -36,6 +39,9 @@ export function InputBar({
   className,
   webSearchEnabled,
   onWebSearchToggle,
+  deepResearchEnabled = false,
+  onDeepResearchToggle,
+  placeholder,
 }: InputBarProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +117,8 @@ export function InputBar({
             webSearchEnabled={webSearchEnabled}
             onToggleWebSearch={onWebSearchToggle}
             onAttach={onAttach}
+            deepResearchEnabled={deepResearchEnabled}
+            onToggleDeepResearch={onDeepResearchToggle}
           />
         ) : (
           <button
@@ -138,7 +146,7 @@ export function InputBar({
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={COMPOSER_PLACEHOLDER}
+          placeholder={placeholder ?? COMPOSER_PLACEHOLDER}
           maxLength={COMPOSER_MAX_LENGTH}
           autoComplete="off"
           spellCheck

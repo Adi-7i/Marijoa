@@ -20,7 +20,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
     op.create_table(
         "deep_research_sessions",
         sa.Column("user_id", sa.Uuid(), nullable=False),
@@ -116,7 +115,7 @@ def upgrade() -> None:
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("token_count", sa.Integer(), nullable=True),
         sa.Column("char_count", sa.Integer(), nullable=True),
-        sa.Column("embedding", sa.Text(), nullable=True),
+        sa.Column("embedding", sa.JSON(), nullable=True),
         sa.Column("embedding_model", sa.String(length=120), nullable=True),
         sa.Column("metadata_json", sa.JSON(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -127,11 +126,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_deep_research_chunks")),
         sa.UniqueConstraint("session_id", "source_id", "chunk_index", name="uq_deep_research_chunks_session_source_index"),
     )
-    op.execute("ALTER TABLE deep_research_chunks ALTER COLUMN embedding TYPE vector(1536) USING NULL")
     op.create_index(op.f("ix_deep_research_chunks_session_id"), "deep_research_chunks", ["session_id"], unique=False)
     op.create_index(op.f("ix_deep_research_chunks_source_id"), "deep_research_chunks", ["source_id"], unique=False)
     op.create_index("ix_deep_research_chunks_session_source", "deep_research_chunks", ["session_id", "source_id"], unique=False)
-    op.execute("CREATE INDEX IF NOT EXISTS ix_deep_research_chunks_embedding_ivfflat ON deep_research_chunks USING ivfflat (embedding vector_cosine_ops)")
 
     op.create_table(
         "deep_research_reports",
@@ -159,7 +156,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index(op.f("ix_deep_research_reports_session_id"), table_name="deep_research_reports")
     op.drop_table("deep_research_reports")
-    op.execute("DROP INDEX IF EXISTS ix_deep_research_chunks_embedding_ivfflat")
     op.drop_index("ix_deep_research_chunks_session_source", table_name="deep_research_chunks")
     op.drop_index(op.f("ix_deep_research_chunks_source_id"), table_name="deep_research_chunks")
     op.drop_index(op.f("ix_deep_research_chunks_session_id"), table_name="deep_research_chunks")

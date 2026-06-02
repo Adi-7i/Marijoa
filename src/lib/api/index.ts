@@ -17,6 +17,7 @@ export * as workspacesApi from "./workspaces";
 export * as chatsApi from "./chats";
 export * as messagesApi from "./messages";
 export * as aiApi from "./ai";
+export * as deepResearchApi from "./deepResearch";
 export * as artifactsApi from "./artifacts";
 export * as filesApi from "./files";
 export * as adminApi from "./admin";

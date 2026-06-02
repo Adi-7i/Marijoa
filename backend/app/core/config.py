@@ -262,6 +262,20 @@ class Settings(BaseSettings):
                 pass
         return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
+    @property
+    def cors_origin_regex(self) -> str | None:
+        """Allow browser dev servers on localhost/private LAN in development only."""
+        if self.APP_ENV != "development":
+            return None
+        return (
+            r"^https?://("
+            r"localhost|127\.0\.0\.1|0\.0\.0\.0|"
+            r"192\.168\.\d{1,3}\.\d{1,3}|"
+            r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+            r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+            r")(:\d+)?$"
+        )
+
 
 @lru_cache
 def get_settings() -> Settings:

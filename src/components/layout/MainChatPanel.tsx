@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { Notice } from "@/components/ui/Notice";
 import { useChat } from "@/hooks/useChat";
+import { useDeepResearch } from "@/hooks/useDeepResearch";
 import type { AppMode, ArtifactType, Chat } from "@/types/marijoa";
 import styles from "@/components/chat/chat-ui.module.css";
 
@@ -58,22 +59,60 @@ export function MainChatPanel({
     onChatActivity,
   });
 
+  const {
+    messages: deepResearchMessages,
+    isDeepResearchMode,
+    setDeepResearchMode,
+    isBusy: isDeepResearchBusy,
+    error: deepResearchError,
+    submitResearchQuery,
+    startResearch,
+    cancelResearch,
+    expandResearch,
+    closeCanvas,
+    exportPdf,
+    expandedResearch,
+    reset: resetDeepResearch,
+  } = useDeepResearch({
+    workspaceId,
+    chatId: selectedChatId,
+    onActivity: onChatActivity,
+  });
+
   // Reset visible messages when AppShell signals a hard reset (mode/workspace change).
   useEffect(() => {
     reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetSignal]);
+    resetDeepResearch();
+  }, [resetSignal, reset, resetDeepResearch]);
 
   const contextSubtitle =
     orgName && workspaceName ? `${orgName} · ${workspaceName}` : workspaceName ?? orgName;
 
   // User-facing single toggle. On = auto search, Off = never.
   const [webSearchEnabled, setWebSearchEnabled] = useState<boolean>(true);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSendError(null);
+    resetDeepResearch();
+  }, [selectedChatId, workspaceId, resetDeepResearch]);
 
   const handleSend = (content: string) => {
-    if (!workspaceId) return;
+    setSendError(null);
+    if (isDeepResearchMode) {
+      void submitResearchQuery(content);
+      return;
+    }
+    if (!workspaceId) {
+      setSendError("Select or create a workspace first.");
+      return;
+    }
     void sendMessage(content, { webMode: webSearchEnabled ? "auto" : "off" });
   };
+
+  const allMessages = [...visibleMessages, ...deepResearchMessages].sort(
+    (a, b) => a.timestamp - b.timestamp
+  );
 
   return (
     <main aria-label="Chat panel" className={`${styles.main} ${className ?? ""}`}>
@@ -84,9 +123,23 @@ export function MainChatPanel({
           </Notice>
         </div>
       )}
+      {sendError && (
+        <div style={{ padding: "8px 16px 0" }}>
+          <Notice>
+            <span role="alert">{sendError}</span>
+          </Notice>
+        </div>
+      )}
+      {deepResearchError && (
+        <div style={{ padding: "8px 16px 0" }}>
+          <Notice>
+            <span role="alert">{deepResearchError}</span>
+          </Notice>
+        </div>
+      )}
       <ChatArea
-        messages={visibleMessages}
-        isThinking={isThinking || isLoading}
+        messages={allMessages}
+        isThinking={isThinking || isLoading || isDeepResearchBusy}
         onSend={handleSend}
         onAttach={onOpenFiles}
         onOpenSidebar={onOpenSidebar ?? (() => undefined)}
@@ -97,6 +150,14 @@ export function MainChatPanel({
         onSaveAsArtifact={onSaveAsArtifact}
         webSearchEnabled={webSearchEnabled}
         onWebSearchToggle={setWebSearchEnabled}
+        deepResearchEnabled={isDeepResearchMode}
+        onDeepResearchToggle={setDeepResearchMode}
+        onStartResearch={startResearch}
+        onCancelResearch={cancelResearch}
+        onExpandResearch={expandResearch}
+        onCloseResearchCanvas={closeCanvas}
+        onExportResearchPdf={exportPdf}
+        expandedResearch={expandedResearch}
       />
     </main>
   );

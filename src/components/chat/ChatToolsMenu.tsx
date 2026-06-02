@@ -6,7 +6,7 @@
  * Items:
  *   - Upload files     → opens existing file panel (onAttach).
  *   - Web Search       → toggles web_mode auto↔off.
- *   - Deep Research    → disabled placeholder, shows coming-soon notice.
+ *   - Deep Research    → toggles backend Deep Research planning mode.
  *
  * The menu never submits the message, never creates a chat, and never
  * reaches outside the chat workspace. All buttons are type="button".
@@ -25,6 +25,8 @@ import styles from "./ChatToolsMenu.module.css";
 interface ChatToolsMenuProps {
   webSearchEnabled: boolean;
   onToggleWebSearch: (next: boolean) => void;
+  deepResearchEnabled?: boolean;
+  onToggleDeepResearch?: (next: boolean) => void;
   onAttach?: () => void;
   className?: string;
 }
@@ -71,12 +73,11 @@ function ResearchIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-const DEEP_RESEARCH_NOTICE =
-  "Deep Research is coming soon. Current web search uses fast source lookup.";
-
 export function ChatToolsMenu({
   webSearchEnabled,
   onToggleWebSearch,
+  deepResearchEnabled = false,
+  onToggleDeepResearch,
   onAttach,
   className,
 }: ChatToolsMenuProps) {
@@ -133,8 +134,12 @@ export function ChatToolsMenu({
 
   const handleDeepResearch = useCallback(() => {
     setOpen(false);
-    setNotice(DEEP_RESEARCH_NOTICE);
-  }, []);
+    if (!onToggleDeepResearch) {
+      setNotice("Select or create a workspace before starting Deep Research.");
+      return;
+    }
+    onToggleDeepResearch(!deepResearchEnabled);
+  }, [deepResearchEnabled, onToggleDeepResearch]);
 
   return (
     <div ref={wrapperRef} className={`${styles.wrapper} ${className ?? ""}`}>
@@ -204,20 +209,20 @@ export function ChatToolsMenu({
 
           <button
             type="button"
-            role="menuitem"
-            aria-disabled="true"
-            className={`${styles.menuItem} ${styles.menuItemDisabled}`}
+            role="menuitemcheckbox"
+            aria-checked={deepResearchEnabled}
+            className={`${styles.menuItem} ${deepResearchEnabled ? styles.menuItemActive : ""}`}
             onClick={handleDeepResearch}
           >
-            <span className={styles.menuItemIcon}>
+            <span className={`${styles.menuItemIcon} ${deepResearchEnabled ? styles.iconActive : ""}`}>
               <ResearchIcon size={16} />
             </span>
             <span className={styles.menuItemBody}>
               <span className={styles.menuItemLabel}>
                 Deep Research
-                <span className={styles.menuItemBadge}>Coming soon</span>
+                <span className={styles.menuItemBadge}>{deepResearchEnabled ? "On" : "Plan"}</span>
               </span>
-              <span className={styles.menuItemHint}>Multi-source, deeper investigation</span>
+              <span className={styles.menuItemHint}>Create a multi-source report plan</span>
             </span>
           </button>
         </div>

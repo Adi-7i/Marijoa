@@ -14,14 +14,26 @@ import {
   ThumbsUpIcon,
 } from "@/components/chat/icons";
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage";
+import { ResearchMessage } from "@/components/deep-research/ResearchMessage";
 import { WebSearchPanel } from "@/components/chat/WebSearchPanel";
 
 interface ChatMessageProps {
   message: ChatMessageType;
   onSaveRequest?: (message: ChatMessageType) => void;
+  onStartResearch?: (sessionId: string) => void;
+  onCancelResearch?: (sessionId: string) => void;
+  onExpandResearch?: (sessionId: string) => void;
+  onExportResearchPdf?: (sessionId: string) => void;
 }
 
-function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
+function ChatMessageComponent({
+  message,
+  onSaveRequest,
+  onStartResearch,
+  onCancelResearch,
+  onExpandResearch,
+  onExportResearchPdf,
+}: ChatMessageProps) {
   const [thoughtsOpen, setThoughtsOpen] = useState(Boolean(message.isStreaming));
   const [copied, setCopied] = useState(false);
 
@@ -39,6 +51,22 @@ function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
     return (
       <div className={`${styles.messageRow} ${styles.userRow}`}>
         <div className={styles.userBubble}>{message.content}</div>
+      </div>
+    );
+  }
+
+  if (message.kind === "deep_research" && message.research) {
+    return (
+      <div className={`${styles.messageRow} ${styles.assistantRow}`}>
+        <article className={styles.assistantBlock} aria-label="Deep Research">
+          <ResearchMessage
+            research={message.research}
+            onStart={onStartResearch ?? (() => undefined)}
+            onCancel={onCancelResearch ?? (() => undefined)}
+            onExpand={onExpandResearch ?? (() => undefined)}
+            onExportPdf={onExportResearchPdf ?? (() => undefined)}
+          />
+        </article>
       </div>
     );
   }

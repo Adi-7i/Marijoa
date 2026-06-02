@@ -3,7 +3,7 @@
  *
  * Covers:
  *   1. WebSearchPanel collapsed/expanded behaviour and safe link attributes.
- *   2. ChatToolsMenu opens, toggles web search, surfaces Deep Research notice,
+ *   2. ChatToolsMenu opens, toggles web search, toggles Deep Research mode,
  *      and forwards upload clicks to the attach handler.
  *   3. adaptMessage extracts sources / web_search_used / search_queries.
  *   4. streamAIResponse forwards web_mode and dispatches SSE web events.
@@ -112,7 +112,7 @@ describe("ChatToolsMenu", () => {
       screen.getByRole("menuitemcheckbox", { name: /web search/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("menuitem", { name: /deep research/i })
+      screen.getByRole("menuitemcheckbox", { name: /deep research/i })
     ).toBeInTheDocument();
   });
 
@@ -151,17 +151,29 @@ describe("ChatToolsMenu", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows a coming-soon notice when Deep Research is clicked", async () => {
+  it("calls onToggleDeepResearch with the inverted value", async () => {
+    const onToggleDeepResearch = vi.fn();
+    render(
+      <ChatToolsMenu
+        webSearchEnabled={true}
+        onToggleWebSearch={() => undefined}
+        deepResearchEnabled={false}
+        onToggleDeepResearch={onToggleDeepResearch}
+      />
+    );
+    await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
+    const deepResearch = screen.getByRole("menuitemcheckbox", { name: /deep research/i });
+    await userEvent.click(deepResearch);
+    expect(onToggleDeepResearch).toHaveBeenCalledWith(true);
+  });
+
+  it("shows the workspace notice if Deep Research is clicked with no handler", async () => {
     render(
       <ChatToolsMenu webSearchEnabled={true} onToggleWebSearch={() => undefined} />
     );
     await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
-    const deepResearch = screen.getByRole("menuitem", { name: /deep research/i });
-    expect(deepResearch).toHaveAttribute("aria-disabled", "true");
-    await userEvent.click(deepResearch);
-    expect(
-      screen.getByText(/deep research is coming soon/i)
-    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: /deep research/i }));
+    expect(screen.getByText(/select or create a workspace before starting deep research/i)).toBeInTheDocument();
   });
 
   it("does NOT render the legacy 'Web: Auto' external pill", () => {

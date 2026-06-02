@@ -18,7 +18,9 @@ import styles from "@/components/chat/chat-ui.module.css";
 import { ArrowDownIcon, MarijoaMark, MenuIcon, PanelRightIcon, ShareIcon } from "@/components/chat/icons";
 import { InputBar } from "@/components/chat/InputBar";
 import { MessageList } from "@/components/chat/MessageList";
+import { ResearchCanvas } from "@/components/deep-research/ResearchCanvas";
 import { SaveAsArtifactModal } from "@/components/artifacts/SaveAsArtifactModal";
+import type { DeepResearchCardState } from "@/types/deep-research";
 
 const ESTIMATED_MESSAGE_HEIGHT = 132;
 const VIRTUAL_OVERSCAN = 6;
@@ -62,6 +64,14 @@ interface ChatAreaProps {
   onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
   webSearchEnabled?: boolean;
   onWebSearchToggle?: (next: boolean) => void;
+  deepResearchEnabled?: boolean;
+  onDeepResearchToggle?: (next: boolean) => void;
+  onStartResearch?: (sessionId: string) => void;
+  onCancelResearch?: (sessionId: string) => void;
+  onExpandResearch?: (sessionId: string) => void;
+  onCloseResearchCanvas?: () => void;
+  onExportResearchPdf?: (sessionId: string) => void;
+  expandedResearch?: DeepResearchCardState | null;
 }
 
 interface PromptSuggestion {
@@ -105,6 +115,14 @@ export function ChatArea({
   onSaveAsArtifact,
   webSearchEnabled,
   onWebSearchToggle,
+  deepResearchEnabled = false,
+  onDeepResearchToggle,
+  onStartResearch,
+  onCancelResearch,
+  onExpandResearch,
+  onCloseResearchCanvas,
+  onExportResearchPdf,
+  expandedResearch,
 }: ChatAreaProps) {
   const [saveMessage, setSaveMessage] = useState<ChatMessageType | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -231,6 +249,10 @@ export function ChatArea({
                   <MessageList
                     messages={virtualState.rendered}
                     onSaveRequest={onSaveAsArtifact ? setSaveMessage : undefined}
+                    onStartResearch={onStartResearch}
+                    onCancelResearch={onCancelResearch}
+                    onExpandResearch={onExpandResearch}
+                    onExportResearchPdf={onExportResearchPdf}
                   />
                 </div>
               </div>
@@ -238,6 +260,10 @@ export function ChatArea({
               <MessageList
                 messages={virtualState.rendered}
                 onSaveRequest={onSaveAsArtifact ? setSaveMessage : undefined}
+                onStartResearch={onStartResearch}
+                onCancelResearch={onCancelResearch}
+                onExpandResearch={onExpandResearch}
+                onExportResearchPdf={onExportResearchPdf}
               />
             )}
           </MessageErrorBoundary>
@@ -267,6 +293,9 @@ export function ChatArea({
                 autoFocus
                 webSearchEnabled={webSearchEnabled}
                 onWebSearchToggle={onWebSearchToggle}
+                deepResearchEnabled={deepResearchEnabled}
+                onDeepResearchToggle={onDeepResearchToggle}
+                placeholder={deepResearchEnabled ? "Get a detailed report..." : undefined}
               />
             </div>
           </div>
@@ -281,6 +310,9 @@ export function ChatArea({
             autoFocus
             webSearchEnabled={webSearchEnabled}
             onWebSearchToggle={onWebSearchToggle}
+            deepResearchEnabled={deepResearchEnabled}
+            onDeepResearchToggle={onDeepResearchToggle}
+            placeholder={deepResearchEnabled ? "Get a detailed report..." : undefined}
           />
           <p className={styles.disclaimer}>{DISCLAIMER_TEXT}</p>
         </div>
@@ -308,6 +340,14 @@ export function ChatArea({
             setSaveMessage(null);
           }}
           onCancel={() => setSaveMessage(null)}
+        />
+      )}
+
+      {expandedResearch && onCloseResearchCanvas && onExportResearchPdf && (
+        <ResearchCanvas
+          research={expandedResearch}
+          onClose={onCloseResearchCanvas}
+          onExportPdf={onExportResearchPdf}
         />
       )}
     </section>
