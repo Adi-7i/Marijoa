@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useState } from "react";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import styles from "@/components/chat/chat-ui.module.css";
 import {
@@ -13,67 +13,11 @@ import {
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from "@/components/chat/icons";
+import { MarkdownMessage } from "@/components/chat/MarkdownMessage";
 
 interface ChatMessageProps {
   message: ChatMessageType;
   onSaveRequest?: (message: ChatMessageType) => void;
-}
-
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
-  let cursor = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > cursor) nodes.push(text.slice(cursor, match.index));
-    const token = match[0];
-    const key = `${keyPrefix}-${match.index}`;
-    if (token.startsWith("`")) {
-      nodes.push(<code key={key} className={styles.inlineCode}>{token.slice(1, -1)}</code>);
-    } else if (token.startsWith("**")) {
-      nodes.push(<strong key={key}>{token.slice(2, -2)}</strong>);
-    } else {
-      nodes.push(<em key={key}>{token.slice(1, -1)}</em>);
-    }
-    cursor = match.index + token.length;
-  }
-
-  if (cursor < text.length) nodes.push(text.slice(cursor));
-  return nodes;
-}
-
-function MarkdownText({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
-  const blocks = useMemo(() => {
-    const parts = content.split(/```/g);
-    return parts.map((part, index) => ({ type: index % 2 === 1 ? "code" : "text", value: part }));
-  }, [content]);
-
-  if (!content && isStreaming) {
-    return (
-      <span className={styles.typing} aria-hidden="true">
-        <span className={styles.dot} />
-        <span className={styles.dot} />
-        <span className={styles.dot} />
-      </span>
-    );
-  }
-
-  return (
-    <>
-      {blocks.map((block, blockIndex) => {
-        if (block.type === "code") {
-          return <pre key={blockIndex} className={styles.codeBlock}><code>{block.value.trim()}</code></pre>;
-        }
-
-        return block.value.split(/\n{2,}/g).filter(Boolean).map((paragraph, paragraphIndex) => (
-          <p key={`${blockIndex}-${paragraphIndex}`}>
-            {renderInline(paragraph, `${blockIndex}-${paragraphIndex}`)}
-          </p>
-        ));
-      })}
-    </>
-  );
 }
 
 function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
@@ -115,8 +59,16 @@ function ChatMessageComponent({ message, onSaveRequest }: ChatMessageProps) {
           {message.thoughts}
         </div>
 
-        <div className={styles.assistantText}>
-          <MarkdownText content={message.content} isStreaming={message.isStreaming} />
+        <div className={`${styles.assistantText} ${styles.assistantProse ?? ""}`.trim()}>
+          {message.content || !message.isStreaming ? (
+            <MarkdownMessage content={message.content} />
+          ) : (
+            <span className={styles.typing} aria-hidden="true">
+              <span className={styles.dot} />
+              <span className={styles.dot} />
+              <span className={styles.dot} />
+            </span>
+          )}
         </div>
 
         <div className={styles.actions} aria-label="Message actions">

@@ -62,10 +62,32 @@ interface ChatAreaProps {
   onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
 }
 
-const suggestions = [
-  "Draft a concise project update",
-  "Explain this code path",
-  "Brainstorm product names",
+interface PromptSuggestion {
+  label: string;
+  prompt: string;
+}
+
+const suggestions: PromptSuggestion[] = [
+  {
+    label: "Draft a concise project update",
+    prompt:
+      "Draft a concise, professional project update for a team or client. Include a short summary, completed work, current progress, blockers, and next steps. If exact details are missing, create a realistic generic version instead of filling the answer with placeholders.",
+  },
+  {
+    label: "Explain this code path",
+    prompt:
+      "Explain this code path in simple, practical terms. Start with a short overview, then describe the flow step by step, and end with possible risks or things to check.",
+  },
+  {
+    label: "Brainstorm product names",
+    prompt:
+      "Brainstorm strong product names with short reasoning. Group them by style — premium, technical, friendly, and enterprise. Keep the list practical and brandable.",
+  },
+  {
+    label: "Compare two options",
+    prompt:
+      "Compare the two options I describe and recommend the best one. Use a structured comparison and end with a clear recommendation.",
+  },
 ];
 
 export function ChatArea({
@@ -193,12 +215,13 @@ export function ChatArea({
               <div className={styles.suggestions} aria-label="Suggested prompts">
                 {suggestions.map((suggestion) => (
                   <button
-                    key={suggestion}
+                    key={suggestion.label}
                     type="button"
                     className={styles.suggestionChip}
-                    onClick={() => sendSuggestion(suggestion)}
+                    onClick={() => sendSuggestion(suggestion.prompt)}
+                    title={suggestion.label}
                   >
-                    {suggestion}
+                    {suggestion.label}
                   </button>
                 ))}
               </div>

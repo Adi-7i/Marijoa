@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from app.modules.ai_gateway.response_presentation import (
+    build_response_presentation_instruction,
+)
 from app.modules.ai_gateway.schemas import ProviderMessage
 
 if TYPE_CHECKING:
@@ -47,10 +50,19 @@ def build_provider_messages(
     """
     messages: list[ProviderMessage] = []
 
-    # 1. System / developer instruction
-    if system_instruction and system_instruction.strip():
+    # 1. System / developer instruction.
+    #
+    # The Marijoa Response Presentation Layer (MRPL) wraps every workspace
+    # instruction with a global presentation policy so the assistant has
+    # consistent formatting and tone across all chats.  The policy is always
+    # present (workspace-less chats still receive it); a workspace's own
+    # ``system_instruction`` is appended as an additional section when set.
+    developer_content = build_response_presentation_instruction(
+        workspace_instruction=system_instruction,
+    )
+    if developer_content:
         messages.append(
-            ProviderMessage(role=_SYSTEM_ROLE, content=system_instruction.strip())
+            ProviderMessage(role=_SYSTEM_ROLE, content=developer_content)
         )
 
     # 2. Truncated conversation history
