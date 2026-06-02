@@ -145,9 +145,44 @@ class Settings(BaseSettings):
     RQ_DEFAULT_QUEUE: str = "default"
     RQ_FILE_QUEUE: str = "files"
     RQ_AI_QUEUE: str = "ai"
+    RQ_RESEARCH_QUEUE: str = "research"
     RQ_JOB_TIMEOUT_SECONDS: int = 600
     RQ_JOB_RESULT_TTL_SECONDS: int = 3600
     RQ_JOB_FAILURE_TTL_SECONDS: int = 86400
+
+    # ------------------------------------------------------------------
+    # Deep Research
+    # ------------------------------------------------------------------
+    DEEP_RESEARCH_ENABLED: bool = True
+    DEEP_RESEARCH_DEFAULT_MODE: str = "standard"
+    DEEP_RESEARCH_MAX_SEARCH_QUERIES: int = 4
+    DEEP_RESEARCH_RESULTS_PER_QUERY: int = 8
+    DEEP_RESEARCH_MAX_SELECTED_SOURCES: int = 6
+    DEEP_RESEARCH_FETCH_TIMEOUT_SECONDS: int = 15
+    DEEP_RESEARCH_FETCH_MAX_BYTES: int = 2_000_000
+    DEEP_RESEARCH_MAX_REDIRECTS: int = 3
+    DEEP_RESEARCH_USER_AGENT: str = "MarijoaResearchBot/0.1"
+    DEEP_RESEARCH_MAX_SOURCE_CHARS: int = 30_000
+    DEEP_RESEARCH_CHUNK_SIZE_CHARS: int = 5000
+    DEEP_RESEARCH_CHUNK_OVERLAP_CHARS: int = 800
+    DEEP_RESEARCH_MAX_TOTAL_CHUNKS: int = 120
+    DEEP_RESEARCH_TOP_EVIDENCE_CHUNKS: int = 30
+    DEEP_RESEARCH_EVIDENCE_CONTEXT_MAX_CHARS: int = 50_000
+    DEEP_RESEARCH_REPORT_MAX_OUTPUT_TOKENS: int = 6000
+    DEEP_RESEARCH_REPORT_TEMPERATURE: float = 0.2
+    DEEP_RESEARCH_JOB_TIMEOUT_SECONDS: int = 1800
+
+    # ------------------------------------------------------------------
+    # Embeddings
+    # ------------------------------------------------------------------
+    EMBEDDINGS_ENABLED: bool = True
+    EMBEDDING_BINDING: str = "azure_openai"
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_HOST: str = "https://cynerza-2026.openai.azure.com/openai/v1"
+    EMBEDDING_API_KEY: str = "PASTE_YOUR_EMBEDDING_API_KEY_HERE"
+    EMBEDDING_DIMENSIONS: int = 1536
+    EMBEDDING_BATCH_SIZE: int = 64
+    EMBEDDING_TIMEOUT_SECONDS: int = 30
 
     # ------------------------------------------------------------------
     # Validators
@@ -169,6 +204,17 @@ class Settings(BaseSettings):
         allowed = {"development", "staging", "production", "test"}
         if v not in allowed:
             raise ValueError(f"APP_ENV must be one of {allowed}")
+        return v
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def normalize_debug(cls, v: object) -> object:
+        if isinstance(v, str):
+            cleaned = v.strip().lower()
+            if cleaned in {"release", "prod", "production"}:
+                return False
+            if cleaned in {"debug", "dev", "development"}:
+                return True
         return v
 
     @model_validator(mode="after")

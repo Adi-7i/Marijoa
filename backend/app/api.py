@@ -7,6 +7,7 @@ from app.modules.ai_gateway.router import router as ai_gateway_router
 from app.modules.artifacts.router import router as artifacts_router
 from app.modules.auth.router import router as auth_router
 from app.modules.chats.router import router as chats_router
+from app.modules.deep_research.router import router as deep_research_router
 from app.modules.files.router import router as files_router
 from app.modules.health.router import router as health_router
 from app.modules.invitations.router import (
@@ -33,6 +34,7 @@ def build_api_router(prefix: str) -> APIRouter:
     router.include_router(messages_router)
     router.include_router(ai_gateway_router)
     router.include_router(web_search_router)
+    router.include_router(deep_research_router)
     router.include_router(artifacts_router)
     router.include_router(files_router)
     router.include_router(admin_router)

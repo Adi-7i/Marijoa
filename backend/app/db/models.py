@@ -11,6 +11,13 @@ from app.modules.artifacts.model import Artifact  # noqa: F401
 from app.modules.audit_logs.model import AuditLog  # noqa: F401
 from app.modules.auth.model import RefreshToken  # noqa: F401
 from app.modules.chats.model import Chat  # noqa: F401
+from app.modules.deep_research.models import (  # noqa: F401
+    DeepResearchChunk,
+    DeepResearchReport,
+    DeepResearchSession,
+    DeepResearchSource,
+    DeepResearchStep,
+)
 from app.modules.files.model import File  # noqa: F401
 from app.modules.invitations.model import OrganizationInvitation  # noqa: F401
 from app.modules.messages.model import Message  # noqa: F401
@@ -23,6 +30,11 @@ __all__ = [
     "AuditLog",
     "Base",
     "Chat",
+    "DeepResearchChunk",
+    "DeepResearchReport",
+    "DeepResearchSession",
+    "DeepResearchSource",
+    "DeepResearchStep",
     "File",
     "Message",
     "Organization",
