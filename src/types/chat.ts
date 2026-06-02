@@ -26,4 +26,5 @@ export interface ChatMessage {
   webSearchUsed?: boolean;
   webMode?: WebMode;
   searchStatus?: "searching" | "complete" | null;
+  searchQueries?: string[];
 }

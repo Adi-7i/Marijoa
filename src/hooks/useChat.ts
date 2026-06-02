@@ -8,8 +8,10 @@ import { createChat as apiCreateChat } from "@/lib/api/chats";
 import type { ChatMessage } from "@/types/chat";
 import type { Chat, Message, WebMode } from "@/types/marijoa";
 
-const STREAM_FLUSH_MS = 50;
 const MAX_VISIBLE_MESSAGES = 200;
+// Fallback flush interval used when requestAnimationFrame is unavailable
+// (e.g. headless test environments).
+const STREAM_FLUSH_FALLBACK_MS = 33;
 
 function createLocalId(prefix: string): string {
   const random = typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -29,6 +31,7 @@ function toChatMessage(message: Message): ChatMessage {
     sources: message.sources,
     webSearchUsed: message.webSearchUsed,
     webMode: message.webMode,
+    searchQueries: message.searchQueries,
   };
 }
 
@@ -65,6 +68,7 @@ export function useChat({
 
   const abortRef = useRef<AbortController | null>(null);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushFrameRef = useRef<number | null>(null);
   const bufferRef = useRef("");
   const loadRequestId = useRef(0);
   const chatIdRef = useRef<string | null>(chatId);
@@ -77,17 +81,25 @@ export function useChat({
   // optimistic messages with an empty history fetch (Bug 4).
   const activeStreamChatIdRef = useRef<string | null>(null);
 
+  const clearFlushHandles = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    if (flushFrameRef.current !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(flushFrameRef.current);
+      flushFrameRef.current = null;
+    }
+  }, []);
+
   const cancelStream = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
     }
-    if (flushTimerRef.current) {
-      clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
-    }
+    clearFlushHandles();
     bufferRef.current = "";
-  }, []);
+  }, [clearFlushHandles]);
 
   const reset = useCallback(() => {
     cancelStream();
@@ -162,13 +174,25 @@ export function useChat({
     if (done) setIsThinking(false);
   }, []);
 
+  // Flush buffered tokens aligned with the next paint. requestAnimationFrame
+  // gives smooth ~60fps updates instead of arbitrary 50ms chunks, which is
+  // what makes ChatGPT/Claude streaming feel fluid. We coalesce all tokens
+  // that arrive between frames into one setState — heavy markdown trees
+  // re-render at most once per frame, not once per token.
   const scheduleFlush = useCallback(
     (assistantId: string) => {
-      if (flushTimerRef.current) return;
-      flushTimerRef.current = setTimeout(() => {
-        flushTimerRef.current = null;
-        flushBufferTo(assistantId, false);
-      }, STREAM_FLUSH_MS);
+      if (flushFrameRef.current !== null || flushTimerRef.current) return;
+      if (typeof requestAnimationFrame === "function") {
+        flushFrameRef.current = requestAnimationFrame(() => {
+          flushFrameRef.current = null;
+          flushBufferTo(assistantId, false);
+        });
+      } else {
+        flushTimerRef.current = setTimeout(() => {
+          flushTimerRef.current = null;
+          flushBufferTo(assistantId, false);
+        }, STREAM_FLUSH_FALLBACK_MS);
+      }
     },
     [flushBufferTo]
   );
@@ -251,11 +275,15 @@ export function useChat({
               )
             );
           },
-          onWebSearchStart: () => {
+          onWebSearchStart: ({ queries }) => {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantLocalId
-                  ? { ...m, searchStatus: "searching" }
+                  ? {
+                      ...m,
+                      searchStatus: "searching",
+                      searchQueries: queries.length > 0 ? queries : m.searchQueries,
+                    }
                   : m
               )
             );
@@ -279,10 +307,7 @@ export function useChat({
             scheduleFlush(assistantLocalId);
           },
           onDone: (payload) => {
-            if (flushTimerRef.current) {
-              clearTimeout(flushTimerRef.current);
-              flushTimerRef.current = null;
-            }
+            clearFlushHandles();
             flushBufferTo(assistantLocalId, true);
             setMessages((prev) =>
               prev.map((m) => {
@@ -302,10 +327,7 @@ export function useChat({
             onChatActivity?.();
           },
           onError: (payload) => {
-            if (flushTimerRef.current) {
-              clearTimeout(flushTimerRef.current);
-              flushTimerRef.current = null;
-            }
+            clearFlushHandles();
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantLocalId
@@ -347,6 +369,7 @@ export function useChat({
     },
     [
       cancelStream,
+      clearFlushHandles,
       flushBufferTo,
       onChatActivity,
       onChatCreated,

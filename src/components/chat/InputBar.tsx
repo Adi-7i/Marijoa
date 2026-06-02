@@ -12,17 +12,21 @@ import {
 import { chatMessageSchema } from "@/lib/validation";
 import { COMPOSER_MAX_LENGTH, COMPOSER_PLACEHOLDER } from "@/lib/constants";
 import styles from "@/components/chat/chat-ui.module.css";
-import { ArrowUpIcon, MicIcon, PlusIcon } from "@/components/chat/icons";
-import { WebModeSelector } from "@/components/chat/WebModeSelector";
-import type { WebMode } from "@/types/marijoa";
+import { ArrowUpIcon, MicIcon } from "@/components/chat/icons";
+import { ChatToolsMenu } from "@/components/chat/ChatToolsMenu";
 
 interface InputBarProps {
   onSend?: (message: string) => void;
+  /**
+   * Open the file upload UI. Wired from MainChatPanel → AppShell so it
+   * does not create a chat or submit the composer.
+   */
   onAttach?: () => void;
   autoFocus?: boolean;
   className?: string;
-  webMode?: WebMode;
-  onWebModeChange?: (mode: WebMode) => void;
+  /** Web search toggle state (auto when true, off when false). */
+  webSearchEnabled?: boolean;
+  onWebSearchToggle?: (next: boolean) => void;
 }
 
 export function InputBar({
@@ -30,8 +34,8 @@ export function InputBar({
   onAttach,
   autoFocus = false,
   className,
-  webMode,
-  onWebModeChange,
+  webSearchEnabled,
+  onWebSearchToggle,
 }: InputBarProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -97,25 +101,32 @@ export function InputBar({
   const arc = `${Math.round(countRatio * 360)}deg`;
   const arcColor = countRatio > 0.9 ? "#dc2626" : "#1a1a1a";
 
+  const toolsVisible = webSearchEnabled !== undefined && onWebSearchToggle !== undefined;
+
   return (
     <div className={`${styles.inputRoot} ${className ?? ""}`}>
       <div className={styles.inputWrapper} role="group" aria-label="Chat message composer">
-        <button
-          type="button"
-          className={styles.attachButton}
-          aria-label="Attach a file"
-          aria-disabled={onAttach ? undefined : true}
-          onClick={(event) => {
-            // The composer lives inside a form-like wrapper in some layouts;
-            // explicitly stop propagation/default so the plus button can never
-            // submit the message or bubble into outer click handlers.
-            event.preventDefault();
-            event.stopPropagation();
-            onAttach?.();
-          }}
-        >
-          <PlusIcon size={18} />
-        </button>
+        {toolsVisible ? (
+          <ChatToolsMenu
+            webSearchEnabled={webSearchEnabled}
+            onToggleWebSearch={onWebSearchToggle}
+            onAttach={onAttach}
+          />
+        ) : (
+          <button
+            type="button"
+            className={styles.attachButton}
+            aria-label="Attach a file"
+            aria-disabled={onAttach ? undefined : true}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onAttach?.();
+            }}
+          >
+            <PlusFallbackIcon />
+          </button>
+        )}
 
         <label htmlFor="chat-input" className="sr-only">
           Chat message
@@ -166,11 +177,25 @@ export function InputBar({
           {error}
         </p>
       )}
-      {webMode !== undefined && onWebModeChange && (
-        <div className={styles.inputControls}>
-          <WebModeSelector mode={webMode} onChange={onWebModeChange} />
-        </div>
-      )}
     </div>
+  );
+}
+
+function PlusFallbackIcon() {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
   );
 }

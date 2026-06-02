@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { Notice } from "@/components/ui/Notice";
 import { useChat } from "@/hooks/useChat";
-import type { AppMode, ArtifactType, Chat, WebMode } from "@/types/marijoa";
+import type { AppMode, ArtifactType, Chat } from "@/types/marijoa";
 import styles from "@/components/chat/chat-ui.module.css";
 
 interface MainChatPanelProps {
@@ -67,11 +67,12 @@ export function MainChatPanel({
   const contextSubtitle =
     orgName && workspaceName ? `${orgName} · ${workspaceName}` : workspaceName ?? orgName;
 
-  const [webMode, setWebMode] = useState<WebMode>("auto");
+  // User-facing single toggle. On = auto search, Off = never.
+  const [webSearchEnabled, setWebSearchEnabled] = useState<boolean>(true);
 
   const handleSend = (content: string) => {
     if (!workspaceId) return;
-    void sendMessage(content, { webMode });
+    void sendMessage(content, { webMode: webSearchEnabled ? "auto" : "off" });
   };
 
   return (
@@ -94,8 +95,8 @@ export function MainChatPanel({
         rightPanelOpen={rightPanelOpen}
         onToggleRightPanel={onToggleRightPanel}
         onSaveAsArtifact={onSaveAsArtifact}
-        webMode={webMode}
-        onWebModeChange={setWebMode}
+        webSearchEnabled={webSearchEnabled}
+        onWebSearchToggle={setWebSearchEnabled}
       />
     </main>
   );

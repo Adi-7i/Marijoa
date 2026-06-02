@@ -338,6 +338,14 @@ function extractSources(metadata: Record<string, unknown> | null): CitationSourc
   return sources.length > 0 ? sources : undefined;
 }
 
+function extractSearchQueries(metadata: Record<string, unknown> | null): string[] | undefined {
+  if (!metadata) return undefined;
+  const raw = metadata.search_queries;
+  if (!Array.isArray(raw)) return undefined;
+  const queries = raw.filter((q): q is string => typeof q === "string" && q.length > 0);
+  return queries.length > 0 ? queries : undefined;
+}
+
 export function adaptMessage(raw: MessageRead): Message {
   const metadata = raw.metadata_json ?? null;
   const sources = extractSources(metadata);
@@ -346,6 +354,7 @@ export function adaptMessage(raw: MessageRead): Message {
       ? (metadata.web_search_used as boolean)
       : undefined;
   const webMode = metadata ? normalizeWebMode(metadata.web_mode) : undefined;
+  const searchQueries = extractSearchQueries(metadata);
 
   return {
     id: raw.id,
@@ -356,6 +365,7 @@ export function adaptMessage(raw: MessageRead): Message {
     sources,
     webSearchUsed,
     webMode,
+    searchQueries,
   };
 }
 

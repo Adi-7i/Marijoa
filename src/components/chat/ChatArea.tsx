@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
-import type { ArtifactType, WebMode } from "@/types/marijoa";
+import type { ArtifactType } from "@/types/marijoa";
 import { APP_NAME, DISCLAIMER_TEXT, USER_GREETING } from "@/lib/constants";
 import styles from "@/components/chat/chat-ui.module.css";
 import { ArrowDownIcon, MarijoaMark, MenuIcon, PanelRightIcon, ShareIcon } from "@/components/chat/icons";
@@ -60,8 +60,8 @@ interface ChatAreaProps {
   rightPanelOpen?: boolean;
   onToggleRightPanel?: () => void;
   onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
-  webMode?: WebMode;
-  onWebModeChange?: (mode: WebMode) => void;
+  webSearchEnabled?: boolean;
+  onWebSearchToggle?: (next: boolean) => void;
 }
 
 interface PromptSuggestion {
@@ -103,14 +103,21 @@ export function ChatArea({
   rightPanelOpen = false,
   onToggleRightPanel,
   onSaveAsArtifact,
-  webMode,
-  onWebModeChange,
+  webSearchEnabled,
+  onWebSearchToggle,
 }: ChatAreaProps) {
   const [saveMessage, setSaveMessage] = useState<ChatMessageType | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFab, setShowFab] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  // True when the user is parked near the bottom — keep auto-scrolling.
+  // False when they have scrolled up to read — leave them alone so streaming
+  // never yanks them away from the content they're reading.
+  const stickToBottomRef = useRef(true);
+  // Throttle auto-scroll to one call per frame so streaming tokens cannot
+  // schedule dozens of scrolls per second.
+  const scrollFrameRef = useRef<number | null>(null);
   const hasMessages = messages.length > 0;
   const shouldVirtualize = messages.length > 50;
 
@@ -124,16 +131,41 @@ export function ChatArea({
     }
   }, []);
 
+  const requestScrollToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      if (scrollFrameRef.current !== null) return;
+      const schedule =
+        typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame
+          : (cb: FrameRequestCallback) => window.setTimeout(() => cb(0), 16);
+      scrollFrameRef.current = schedule(() => {
+        scrollFrameRef.current = null;
+        scrollToBottom(behavior);
+      }) as unknown as number;
+    },
+    [scrollToBottom]
+  );
+
   const latestMessageContent = messages[messages.length - 1]?.content;
 
   useEffect(() => {
-    scrollToBottom("smooth");
-  }, [latestMessageContent, messages.length, scrollToBottom]);
+    if (!stickToBottomRef.current) return;
+    requestScrollToBottom("smooth");
+  }, [latestMessageContent, messages.length, requestScrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 80;
     setShowFab(distanceFromBottom > 200);
     setScrollTop(el.scrollTop);
     setViewportHeight(el.clientHeight);
@@ -233,8 +265,8 @@ export function ChatArea({
                 onSend={onSend}
                 onAttach={onAttach}
                 autoFocus
-                webMode={webMode}
-                onWebModeChange={onWebModeChange}
+                webSearchEnabled={webSearchEnabled}
+                onWebSearchToggle={onWebSearchToggle}
               />
             </div>
           </div>
@@ -243,13 +275,27 @@ export function ChatArea({
 
       {hasMessages && (
         <div className={styles.inputDock}>
-          <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
+          <InputBar
+            onSend={onSend}
+            onAttach={onAttach}
+            autoFocus
+            webSearchEnabled={webSearchEnabled}
+            onWebSearchToggle={onWebSearchToggle}
+          />
           <p className={styles.disclaimer}>{DISCLAIMER_TEXT}</p>
         </div>
       )}
 
       {showFab && (
-        <button type="button" className={styles.fab} aria-label="Scroll to bottom" onClick={() => scrollToBottom("smooth")}>
+        <button
+          type="button"
+          className={styles.fab}
+          aria-label="Scroll to bottom"
+          onClick={() => {
+            stickToBottomRef.current = true;
+            scrollToBottom("smooth");
+          }}
+        >
           <ArrowDownIcon />
         </button>
       )}

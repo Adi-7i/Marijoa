@@ -74,6 +74,7 @@ export interface Message {
   sources?: CitationSource[];
   webSearchUsed?: boolean;
   webMode?: WebMode;
+  searchQueries?: string[];
 }
 
 export type WebMode = "auto" | "off" | "search";

@@ -1,13 +1,13 @@
 /**
- * Frontend tests for the Web Search Access Layer.
+ * Frontend tests for the polished Web Search UX.
  *
  * Covers:
- *   1. WebModeSelector renders Auto/Off/Search and emits the right value.
- *   2. SourceCitations renders cards with correct links and rel attributes.
- *   3. SSE dispatcher recognises web_search_start and web_sources events.
- *   4. adaptMessage extracts sources / web_search_used from metadata_json.
- *   5. The streamAIResponse body includes web_mode when supplied.
- *   6. No source file references SEARXNG_BASE_URL or a SearXNG domain — the
+ *   1. WebSearchPanel collapsed/expanded behaviour and safe link attributes.
+ *   2. ChatToolsMenu opens, toggles web search, surfaces Deep Research notice,
+ *      and forwards upload clicks to the attach handler.
+ *   3. adaptMessage extracts sources / web_search_used / search_queries.
+ *   4. streamAIResponse forwards web_mode and dispatches SSE web events.
+ *   5. No source file references SEARXNG_BASE_URL or a SearXNG domain — the
  *      backend must remain the only client of the search provider.
  */
 
@@ -17,88 +17,163 @@ import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { WebModeSelector } from "@/components/chat/WebModeSelector";
-import { SourceCitations } from "@/components/chat/SourceCitations";
+import { WebSearchPanel } from "@/components/chat/WebSearchPanel";
+import { ChatToolsMenu } from "@/components/chat/ChatToolsMenu";
 import { adaptCitationSource, adaptMessage } from "@/lib/api/adapters";
 import type { MessageRead } from "@/lib/api/types";
 
 // ---------------------------------------------------------------------------
-// WebModeSelector
+// WebSearchPanel
 // ---------------------------------------------------------------------------
 
-describe("WebModeSelector", () => {
-  it("renders the current mode label", () => {
-    render(<WebModeSelector mode="auto" onChange={() => undefined} />);
-    expect(screen.getByRole("button", { name: /web mode: auto/i })).toBeInTheDocument();
-  });
+const SAMPLE_SOURCES = [
+  {
+    index: 1,
+    title: "FastAPI release",
+    url: "https://fastapi.tiangolo.com/release-notes/",
+    snippet: "0.115 is out",
+    domain: "fastapi.tiangolo.com",
+  },
+  {
+    index: 2,
+    title: "Reddit thread",
+    url: "https://reddit.com/r/Python/comments/abc",
+  },
+];
 
-  it("opens a menu listing Auto, Search, and Off", async () => {
-    render(<WebModeSelector mode="auto" onChange={() => undefined} />);
-    await userEvent.click(screen.getByRole("button", { name: /web mode/i }));
-
-    const menu = await screen.findByRole("menu");
-    const items = screen.getAllByRole("menuitemradio");
-    expect(menu).toBeInTheDocument();
-    expect(items).toHaveLength(3);
-    expect(items[0].textContent).toMatch(/^Auto/);
-    expect(items[1].textContent).toMatch(/^Search/);
-    expect(items[2].textContent).toMatch(/^Off/);
-  });
-
-  it("calls onChange with the selected mode", async () => {
-    const onChange = vi.fn();
-    render(<WebModeSelector mode="auto" onChange={onChange} />);
-    await userEvent.click(screen.getByRole("button", { name: /web mode/i }));
-    const items = screen.getAllByRole("menuitemradio");
-    // items[1] is "Search"
-    await userEvent.click(items[1]);
-    expect(onChange).toHaveBeenCalledWith("search");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// SourceCitations
-// ---------------------------------------------------------------------------
-
-describe("SourceCitations", () => {
-  it("renders nothing when no sources are passed", () => {
-    const { container } = render(<SourceCitations sources={undefined} />);
+describe("WebSearchPanel", () => {
+  it("renders nothing when there is no search activity at all", () => {
+    const { container } = render(<WebSearchPanel />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders one card per source with safe link attributes", () => {
-    render(
-      <SourceCitations
-        sources={[
-          {
-            index: 1,
-            title: "FastAPI release",
-            url: "https://fastapi.tiangolo.com/release-notes/",
-            snippet: "0.115 is out",
-            domain: "fastapi.tiangolo.com",
-          },
-          {
-            index: 2,
-            title: "Reddit thread",
-            url: "https://reddit.com/r/Python/comments/abc",
-          },
-        ]}
-      />
+  it("renders a compact 'Searched the web · N sources' header", () => {
+    render(<WebSearchPanel sources={SAMPLE_SOURCES} />);
+    expect(
+      screen.getByRole("button", { name: /searched the web · 2 sources/i })
+    ).toBeInTheDocument();
+  });
+
+  it("starts collapsed after streaming ends and expands on click", async () => {
+    render(<WebSearchPanel sources={SAMPLE_SOURCES} isStreaming={false} />);
+
+    // Collapsed: source list is not in the DOM.
+    expect(screen.queryByText(/FastAPI release/i)).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /searched the web/i })
     );
 
-    const links = screen.getAllByRole("link");
-    expect(links).toHaveLength(2);
-    expect(links[0]).toHaveAttribute("href", "https://fastapi.tiangolo.com/release-notes/");
-    expect(links[0]).toHaveAttribute("target", "_blank");
-    const rel = (links[0].getAttribute("rel") ?? "").split(/\s+/);
-    expect(rel).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
     expect(screen.getByText(/FastAPI release/i)).toBeInTheDocument();
     expect(screen.getByText(/Reddit thread/i)).toBeInTheDocument();
+  });
+
+  it("starts expanded while the answer is still streaming", () => {
+    render(<WebSearchPanel sources={SAMPLE_SOURCES} isStreaming={true} />);
+    // Source list visible immediately, no click needed.
+    expect(screen.getByText(/FastAPI release/i)).toBeInTheDocument();
+  });
+
+  it("uses safe rel attributes for every source link", async () => {
+    render(<WebSearchPanel sources={SAMPLE_SOURCES} isStreaming={true} />);
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute("target", "_blank");
+      const rel = (link.getAttribute("rel") ?? "").split(/\s+/);
+      expect(rel).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
+    }
+  });
+
+  it("shows a 'Searching the web…' header when searching with no sources yet", () => {
+    render(<WebSearchPanel isSearching={true} />);
+    expect(
+      screen.getByRole("button", { name: /searching the web/i })
+    ).toBeInTheDocument();
   });
 });
 
 // ---------------------------------------------------------------------------
-// adaptMessage — extracts web-search metadata
+// ChatToolsMenu
+// ---------------------------------------------------------------------------
+
+describe("ChatToolsMenu", () => {
+  it("opens a menu when the trigger is clicked", async () => {
+    render(
+      <ChatToolsMenu webSearchEnabled={true} onToggleWebSearch={() => undefined} />
+    );
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
+
+    expect(screen.getByRole("menu", { name: /chat tools/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /upload files/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitemcheckbox", { name: /web search/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /deep research/i })
+    ).toBeInTheDocument();
+  });
+
+  it("calls onToggleWebSearch with the inverted value", async () => {
+    const onToggle = vi.fn();
+    render(<ChatToolsMenu webSearchEnabled={true} onToggleWebSearch={onToggle} />);
+    await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
+    await userEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: /web search/i })
+    );
+    expect(onToggle).toHaveBeenCalledWith(false);
+  });
+
+  it("forwards Upload files clicks to onAttach without submitting any form", async () => {
+    const onAttach = vi.fn();
+    render(
+      <ChatToolsMenu
+        webSearchEnabled={false}
+        onToggleWebSearch={() => undefined}
+        onAttach={onAttach}
+      />
+    );
+    await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /upload files/i }));
+    expect(onAttach).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the workspace notice if Upload files is clicked with no attach handler", async () => {
+    render(
+      <ChatToolsMenu webSearchEnabled={false} onToggleWebSearch={() => undefined} />
+    );
+    await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /upload files/i }));
+    expect(
+      screen.getByText(/select or create a workspace before uploading files/i)
+    ).toBeInTheDocument();
+  });
+
+  it("shows a coming-soon notice when Deep Research is clicked", async () => {
+    render(
+      <ChatToolsMenu webSearchEnabled={true} onToggleWebSearch={() => undefined} />
+    );
+    await userEvent.click(screen.getByRole("button", { name: /open chat tools/i }));
+    const deepResearch = screen.getByRole("menuitem", { name: /deep research/i });
+    expect(deepResearch).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(deepResearch);
+    expect(
+      screen.getByText(/deep research is coming soon/i)
+    ).toBeInTheDocument();
+  });
+
+  it("does NOT render the legacy 'Web: Auto' external pill", () => {
+    render(
+      <ChatToolsMenu webSearchEnabled={true} onToggleWebSearch={() => undefined} />
+    );
+    expect(screen.queryByText(/^Web: Auto$/)).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// adaptMessage — extracts web-search metadata including search_queries
 // ---------------------------------------------------------------------------
 
 describe("adaptMessage with web search metadata", () => {
@@ -117,12 +192,13 @@ describe("adaptMessage with web search metadata", () => {
     };
   }
 
-  it("extracts sources and web_search_used flag from metadata", () => {
+  it("extracts sources, search_queries and web_search_used", () => {
     const adapted = adaptMessage(
       baseMessage({
         metadata_json: {
           web_search_used: true,
           web_mode: "auto",
+          search_queries: ["india current affairs", "today news"],
           sources: [
             {
               index: 1,
@@ -138,8 +214,8 @@ describe("adaptMessage with web search metadata", () => {
 
     expect(adapted.webSearchUsed).toBe(true);
     expect(adapted.webMode).toBe("auto");
+    expect(adapted.searchQueries).toEqual(["india current affairs", "today news"]);
     expect(adapted.sources).toHaveLength(1);
-    expect(adapted.sources?.[0].index).toBe(1);
     expect(adapted.sources?.[0].domain).toBe("example.com");
   });
 
@@ -148,22 +224,25 @@ describe("adaptMessage with web search metadata", () => {
     expect(adapted.webSearchUsed).toBeUndefined();
     expect(adapted.webMode).toBeUndefined();
     expect(adapted.sources).toBeUndefined();
+    expect(adapted.searchQueries).toBeUndefined();
   });
 
-  it("ignores malformed source entries", () => {
+  it("ignores malformed source entries and non-string queries", () => {
     const adapted = adaptMessage(
       baseMessage({
         metadata_json: {
           sources: [
             { index: 1, title: "ok", url: "https://example.com/" },
-            { title: "missing url" }, // dropped
-            { index: 2 }, // dropped
+            { title: "missing url" },
+            { index: 2 },
             "not an object",
           ],
+          search_queries: ["good query", 42, null, ""],
         },
       })
     );
     expect(adapted.sources).toHaveLength(1);
+    expect(adapted.searchQueries).toEqual(["good query"]);
   });
 
   it("normalises an invalid web_mode value to undefined", () => {
@@ -204,7 +283,6 @@ describe("adaptCitationSource", () => {
 // ---------------------------------------------------------------------------
 
 describe("streamAIResponse SSE handling", () => {
-  // Build an SSE-formatted byte stream for the mock fetch response.
   function makeSSEResponse(events: Array<{ event: string; data: unknown }>): Response {
     const encoder = new TextEncoder();
     const lines = events
@@ -221,7 +299,7 @@ describe("streamAIResponse SSE handling", () => {
     globalThis.fetch = ORIGINAL_FETCH;
   });
 
-  it("dispatches web_search_start and web_sources to handlers and forwards web_mode", async () => {
+  it("dispatches web_search_start and web_sources, forwards web_mode", async () => {
     const { streamAIResponse } = await import("@/lib/api/ai");
 
     const fetchMock = vi.fn().mockResolvedValue(
@@ -254,7 +332,7 @@ describe("streamAIResponse SSE handling", () => {
     const onDone = vi.fn();
 
     await streamAIResponse("c1", "hi", {
-      webMode: "search",
+      webMode: "off",
       onWebSearchStart,
       onWebSources,
       onToken,
@@ -274,11 +352,10 @@ describe("streamAIResponse SSE handling", () => {
       webSearchUsed: true,
     });
 
-    // web_mode reaches the backend body
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, init] = fetchMock.mock.calls[0];
     const body = JSON.parse(String((init as RequestInit).body));
-    expect(body).toEqual({ content: "hi", web_mode: "search" });
+    expect(body).toEqual({ content: "hi", web_mode: "off" });
   });
 });
 
