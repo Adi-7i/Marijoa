@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useRouter } from "next/navigation";
 import { APP_NAME } from "@/lib/constants";
 import type { AppMode, Chat, Organization, User, Workspace } from "@/types/marijoa";
 import { ChatHistoryList } from "@/components/chat/ChatHistoryList";
@@ -8,6 +9,8 @@ import { UserProfile } from "@/components/chat/UserProfile";
 import { MarijoaMark, PanelIcon, PlusIcon, SearchIcon, SettingsIcon } from "@/components/chat/icons";
 import { ModeSwitcher } from "@/components/workspace/ModeSwitcher";
 import { WorkspaceList } from "@/components/workspace/WorkspaceList";
+import { useAuth } from "@/lib/auth/auth-context";
+import { showToast } from "@/lib/toast";
 import styles from "@/components/chat/chat-ui.module.css";
 
 interface SidebarProps {
@@ -26,6 +29,8 @@ interface SidebarProps {
   selectedWorkspaceId?: string | null;
   onWorkspaceChange?: (workspaceId: string) => void;
   onShowOrgOverview?: () => void;
+  onShowAdmin?: () => void;
+  isAdminActive?: boolean;
   // Chat state
   chats?: Chat[];
   selectedChatId?: string | null;
@@ -48,15 +53,25 @@ export function Sidebar({
   selectedWorkspaceId = null,
   onWorkspaceChange,
   onShowOrgOverview,
+  onShowAdmin,
+  isAdminActive = false,
   chats = [],
   selectedChatId = null,
   onChatSelect,
   user,
 }: SidebarProps) {
+  const router = useRouter();
+  const { logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  async function handleLogout() {
+    await logout();
+    showToast("Signed out.", { variant: "info" });
+    router.replace("/login");
+  }
 
   const currentOrg = organizations.find((o) => o.id === selectedOrgId);
 
@@ -139,7 +154,6 @@ export function Sidebar({
       {mode === "organization" && onWorkspaceChange && currentOrg && (
         <WorkspaceList
           orgName={currentOrg.name}
-          orgRole={currentOrg.role}
           workspaces={workspaces}
           selectedId={selectedWorkspaceId}
           onSelect={onWorkspaceChange}
@@ -207,8 +221,17 @@ export function Sidebar({
             onSelect={onChatSelect}
           />
         ) : (
-          <p style={{ padding: "8px 12px", fontSize: "12.5px", color: "var(--color-text-muted)" }}>
-            {searchQuery ? "No chats match your search." : "No chats yet. Start one above!"}
+          <p
+            style={{
+              padding: "10px 12px",
+              fontSize: "12px",
+              color: "var(--color-text-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            {searchQuery
+              ? "No chats match your search."
+              : "No chats yet. Start a new one above."}
           </p>
         )}
       </div>
@@ -218,9 +241,15 @@ export function Sidebar({
         <>
           <div className={styles.sidebarDivider} role="separator" />
           <div className={styles.adminLinkWrap}>
-            <button type="button" className={styles.adminLink} aria-label="Organization admin settings">
+            <button
+              type="button"
+              className={`${styles.adminLink} ${isAdminActive ? styles.adminLinkActive : ""}`}
+              aria-label="Organization admin dashboard"
+              aria-current={isAdminActive ? "page" : undefined}
+              onClick={onShowAdmin}
+            >
               <SettingsIcon size={14} />
-              Admin Settings
+              Admin
             </button>
           </div>
         </>
@@ -228,7 +257,10 @@ export function Sidebar({
 
       {/* User profile */}
       {user ? (
-        <UserProfile user={{ name: user.name, initials: user.initials }} />
+        <UserProfile
+          user={{ name: user.name, initials: user.initials }}
+          onLogout={handleLogout}
+        />
       ) : null}
 
       <div

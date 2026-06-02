@@ -300,3 +300,105 @@
     transform: translateX(0);
   }
 }
+
+@media (max-width: 1024px) {
+  .rightPanel {
+    width: 260px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rightPanel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: min(92vw, 360px);
+    z-index: 35;
+    box-shadow: -8px 0 20px rgba(0, 0, 0, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rightPanel {
+    animation: none;
+  }
+}
+
+/* ─── WorkspaceContextPanel extras ──────────────────────────────── */
+
+.contextDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 6px 0;
+  opacity: 0.7;
+}
+
+.contextValueMuted {
+  color: var(--color-text-secondary) !important;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.contextValueInstruction {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  background: #fafafa;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: block;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.contextStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.contextStat {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.contextStat strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.recentItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.recentLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.recentValue {
+  font-size: 12px;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentTime {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}

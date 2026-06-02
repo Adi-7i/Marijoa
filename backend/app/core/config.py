@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import json
+import logging
 from functools import lru_cache
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+# Minimum byte length recommended by PyJWT for HS256 / HS512 signing keys.
+# A shorter key produces an InsecureKeyLengthWarning and is treated as a hard
+# failure when APP_ENV=production.
+MIN_JWT_SECRET_BYTES = 32
 
 
 class Settings(BaseSettings):
@@ -123,11 +131,32 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def enforce_production_secrets(self) -> "Settings":
+        secret_bytes = len(self.JWT_SECRET_KEY.encode("utf-8"))
         if self.APP_ENV == "production":
             if self.JWT_SECRET_KEY == "change-me-in-production":
-                raise ValueError("JWT_SECRET_KEY must be set to a strong secret in production")
+                raise ValueError(
+                    "JWT_SECRET_KEY must be set to a strong secret in production"
+                )
+            if secret_bytes < MIN_JWT_SECRET_BYTES:
+                raise ValueError(
+                    "JWT_SECRET_KEY must be at least "
+                    f"{MIN_JWT_SECRET_BYTES} bytes (got {secret_bytes}) for "
+                    f"{self.JWT_ALGORITHM}. Generate one with: "
+                    "python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+                )
             if "change_me" in self.DATABASE_URL:
                 raise ValueError("DATABASE_URL must use real credentials in production")
+        elif secret_bytes < MIN_JWT_SECRET_BYTES:
+            # Development / staging — warn but do not crash so local dev keeps
+            # working with placeholder secrets. Never print the secret itself.
+            logger.warning(
+                "JWT_SECRET_KEY is %d bytes; %s recommends >= %d bytes. "
+                "Generate a stronger secret with: "
+                "python -c \"import secrets; print(secrets.token_urlsafe(48))\"",
+                secret_bytes,
+                self.JWT_ALGORITHM,
+                MIN_JWT_SECRET_BYTES,
+            )
         return self
 
     # ------------------------------------------------------------------

@@ -1,0 +1,523 @@
+/* ─── Auth layout ─────────────────────────────────────────────── */
+
+.page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--color-bg);
+  overflow-y: auto;
+  color: var(--color-text-primary);
+}
+
+.brandColumn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
+  background: linear-gradient(180deg, #f8f8f9 0%, #f1f1f3 100%);
+  border-right: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.brandColumn::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(26, 26, 26, 0.05), transparent 70%);
+  pointer-events: none;
+}
+
+.brandColumn::after {
+  content: "";
+  position: absolute;
+  bottom: -160px;
+  left: -160px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(26, 26, 26, 0.04), transparent 70%);
+  pointer-events: none;
+}
+
+.formColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: #ffffff;
+}
+
+.formCard {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: authFadeIn 220ms ease both;
+}
+
+.formHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formTitle {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.formSubtitle {
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.formRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--color-text-primary);
+}
+
+.inlineLink {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 0;
+  text-decoration: underline;
+  text-decoration-color: rgba(0, 0, 0, 0.2);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease;
+}
+
+.inlineLink:hover {
+  text-decoration-color: var(--color-text-primary);
+}
+
+.inlineLink:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.footerCopy {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.footerCopy strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fineprint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.fineprint a,
+.fineprint button {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+/* ─── Brand panel ──────────────────────────────────────────────── */
+
+.brandHeader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  z-index: 1;
+}
+
+.brandLogo {
+  width: 28px;
+  height: 28px;
+  color: var(--color-text-primary);
+}
+
+.brandName {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.brandBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 440px;
+  z-index: 1;
+}
+
+.brandTagline {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.brandLead {
+  font-size: 14.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.brandModes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.brandModeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  padding: 12px;
+}
+
+.brandModeTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.brandModeDesc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.brandTeaser {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  width: max-content;
+  margin-top: 4px;
+}
+
+.brandFooter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  z-index: 1;
+}
+
+/* ─── Feature list ─────────────────────────────────────────────── */
+
+.featureList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  list-style: none;
+  padding: 0;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.featureCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  color: #ffffff;
+  margin-top: 1px;
+}
+
+.featureItem strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-right: 2px;
+}
+
+/* ─── Password strength ───────────────────────────────────────── */
+
+.strength {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 0;
+}
+
+.strengthBars {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.strengthBar {
+  height: 4px;
+  border-radius: 999px;
+  background: #e5e5e5;
+  transition: background 180ms ease;
+}
+
+.strengthBarFilled {
+  background: var(--color-text-primary);
+}
+
+.strengthBarWeak {
+  background: #dc2626;
+}
+
+.strengthBarFair {
+  background: #f59e0b;
+}
+
+.strengthBarGood {
+  background: #16a34a;
+}
+
+.strengthBarStrong {
+  background: #15803d;
+}
+
+.strengthHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+.strengthLabel {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.strengthChecks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  margin-top: 2px;
+}
+
+.strengthCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  transition: color 120ms ease;
+}
+
+.strengthCheckOn {
+  color: #16a34a;
+}
+
+.strengthCheckDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.strengthCheckOn .strengthCheckDot {
+  opacity: 1;
+}
+
+/* ─── Success state ───────────────────────────────────────────── */
+
+.successCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #fafafa;
+  animation: authFadeIn 220ms ease both;
+}
+
+.successIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.successTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.successDesc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+@keyframes authFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 960px) {
+  .page {
+    grid-template-columns: 1fr;
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .brandColumn {
+    padding: 36px 28px 28px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .brandModes {
+    grid-template-columns: 1fr;
+  }
+
+  .formColumn {
+    padding: 32px 20px 56px;
+  }
+}
+
+@media (max-width: 560px) {
+  .brandColumn {
+    padding: 24px 20px;
+  }
+
+  .brandTagline {
+    font-size: 22px;
+  }
+
+  .brandLead {
+    font-size: 13.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formCard,
+  .successCard {
+    animation: none;
+  }
+}
+
+.guardScreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--color-bg, #ffffff);
+  color: var(--color-text-muted, #6b7280);
+  font-size: 13.5px;
+}
+
+.guardScreenText {
+  letter-spacing: 0.01em;
+}

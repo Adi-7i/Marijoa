@@ -6,6 +6,8 @@ export type OrganizationType = "PERSONAL" | "COMPANY";
 export type OrganizationRole = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
 export type MemberStatus = "ACTIVE" | "INVITED" | "SUSPENDED" | "REMOVED";
 export type MessageRole = "user" | "assistant" | "system" | "tool";
+export type ArtifactType = "code" | "document" | "chart" | "table" | "prompt" | "email" | "proposal" | "note";
+export type FileStatus = "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
 
 export interface User {
   id: string;
@@ -50,6 +52,7 @@ export interface OrganizationMember {
   avatarUrl?: string;
   role: OrganizationRole;
   status: MemberStatus;
+  joinedAt?: number;
 }
 
 export interface Chat {
@@ -74,20 +77,91 @@ export interface Artifact {
   id: string;
   workspaceId: string;
   chatId?: string;
-  type: "code" | "document" | "chart" | "table";
+  createdBy?: string;
   title: string;
+  type: ArtifactType;
   language?: string;
   content: string;
+  version?: number;
+  isActive?: boolean;
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface FileItem {
   id: string;
   workspaceId: string;
   chatId?: string;
+  uploadedBy?: string;
   name: string;
+  originalFilename?: string;
+  mimeType?: string;
   type: string;
   sizeBytes: number;
+  status?: FileStatus;
   url: string;
   uploadedAt: number;
+  updatedAt?: number;
+}
+
+export type AuditAction =
+  | "USER_LOGIN"
+  | "USER_LOGOUT"
+  | "ORGANIZATION_CREATED"
+  | "ORGANIZATION_MEMBER_ADDED"
+  | "WORKSPACE_CREATED"
+  | "WORKSPACE_UPDATED"
+  | "WORKSPACE_DELETED"
+  | "CHAT_CREATED"
+  | "CHAT_UPDATED"
+  | "CHAT_DELETED"
+  | "MESSAGE_CREATED"
+  | "AI_RESPONSE_CREATED"
+  | "AI_STREAM_COMPLETED"
+  | "ARTIFACT_CREATED"
+  | "ARTIFACT_UPDATED"
+  | "ARTIFACT_DELETED"
+  | "FILE_UPLOADED"
+  | "FILE_DELETED"
+  | "ADMIN_USERS_VIEWED"
+  | "ADMIN_AUDIT_LOGS_VIEWED"
+  | "ADMIN_USAGE_VIEWED";
+
+export interface AuditLog {
+  id: string;
+  organizationId: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  userId?: string;
+  userName?: string;
+  action: AuditAction;
+  entityType: string;
+  entityId?: string;
+  ipAddress?: string;
+  metadata?: Record<string, string>;
+  createdAt: number;
+}
+
+export interface AdminUsageSummary {
+  organizationId: string;
+  usersCount: number;
+  activeUsersCount: number;
+  workspacesCount: number;
+  chatsCount: number;
+  messagesCount: number;
+  artifactsCount: number;
+  filesCount: number;
+  storageBytes: number;
+}
+
+export interface WorkspaceContext {
+  workspaceId: string;
+  summary?: string;
+  recentActivity?: string;
+  stats: {
+    chats: number;
+    files: number;
+    artifacts: number;
+    members: number;
+  };
 }

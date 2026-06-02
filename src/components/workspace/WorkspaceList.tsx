@@ -1,12 +1,11 @@
 "use client";
 
-import type { OrganizationRole, Workspace } from "@/types/marijoa";
+import type { Workspace } from "@/types/marijoa";
 import { BuildingIcon, LayersIcon } from "@/components/chat/icons";
 import styles from "./workspace.module.css";
 
 interface WorkspaceListProps {
   orgName: string;
-  orgRole: OrganizationRole;
   workspaces: Workspace[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -15,7 +14,6 @@ interface WorkspaceListProps {
 
 export function WorkspaceList({
   orgName,
-  orgRole: _orgRole,
   workspaces,
   selectedId,
   onSelect,

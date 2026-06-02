@@ -4,16 +4,17 @@ import { ChatArea } from "@/components/chat/ChatArea";
 interface ActiveChatStateProps {
   messages: ChatMessage[];
   onSend: (message: string) => void;
-  onReset?: () => void;
+  /** Plus / attachment button handler — opens the file upload UI. */
+  onAttach?: () => void;
 }
 
-export function ActiveChatState({ messages, onSend, onReset }: ActiveChatStateProps) {
+export function ActiveChatState({ messages, onSend, onAttach }: ActiveChatStateProps) {
   return (
     <ChatArea
       messages={messages}
       isThinking={messages.some((message) => message.isStreaming)}
       onSend={onSend}
-      onNewChat={onReset}
+      onAttach={onAttach}
       onOpenSidebar={() => undefined}
     />
   );

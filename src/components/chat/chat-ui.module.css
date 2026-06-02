@@ -276,6 +276,7 @@
 }
 
 .userName {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-primary);
@@ -283,6 +284,25 @@
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.userLogout {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.userLogout:hover,
+.userLogout:focus-visible {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+  outline: none;
 }
 
 .resizeHandle {
@@ -794,6 +814,12 @@
   color: var(--color-text-secondary);
 }
 
+.adminLinkActive {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
 /* ─── Header context ─────────────────────────────────────────────── */
 
 .headerCenter {
@@ -842,6 +868,12 @@
   padding: 8px 12px;
 }
 
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+}
+
 @media (max-width: 768px) {
   .appShell {
     display: block;
@@ -853,6 +885,7 @@
     top: 0;
     width: min(86vw, 320px);
     transform: translateX(-101%);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   }
 
   .sidebarOpen {

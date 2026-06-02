@@ -36,7 +36,7 @@ describe("ChatComposer", () => {
   it("renders aria-label on plus button", () => {
     render(<ChatComposer />);
     expect(
-      screen.getByRole("button", { name: /add attachment or start new chat/i })
+      screen.getByRole("button", { name: /attach a file/i })
     ).toBeInTheDocument();
   });
 
@@ -103,52 +103,25 @@ describe("ChatComposer", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("calls onReset when Plus button is clicked", async () => {
-    const onReset = vi.fn();
-    render(<ChatComposer onReset={onReset} />);
+  it("calls onAttach when Plus button is clicked", async () => {
+    const onAttach = vi.fn();
+    render(<ChatComposer onAttach={onAttach} />);
     await userEvent.click(
-      screen.getByRole("button", { name: /add attachment or start new chat/i })
+      screen.getByRole("button", { name: /attach a file/i })
     );
-    expect(onReset).toHaveBeenCalledOnce();
+    expect(onAttach).toHaveBeenCalledOnce();
+  });
+
+  it("Plus button never triggers onSend (must not submit the message)", async () => {
+    const onSend = vi.fn();
+    render(<ChatComposer onSend={onSend} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /attach a file/i })
+    );
+    expect(onSend).not.toHaveBeenCalled();
   });
 });
 
-/* ── Active chat state integration ─────────────────────────── */
-
-describe("ChatComposer — active chat state (demo behavior)", () => {
-  it("renders user bubble after sending a message", async () => {
-    // Test via MainChatPanel which wires up the full demo flow
-    const { MainChatPanel } = await import("@/components/layout/MainChatPanel");
-    render(<MainChatPanel />);
-
-    const input = screen.getByRole("textbox", { name: /chat message/i });
-    await userEvent.type(input, "hi{Enter}");
-
-    // User bubble should appear
-    expect(await screen.findByText("hi")).toBeInTheDocument();
-  });
-
-  it("renders demo assistant response after user sends a message", async () => {
-    const { MainChatPanel } = await import("@/components/layout/MainChatPanel");
-    render(<MainChatPanel />);
-
-    const input = screen.getByRole("textbox", { name: /chat message/i });
-    await userEvent.type(input, "hi{Enter}");
-
-    expect(
-      await screen.findByText(/how can i help you today/i)
-    ).toBeInTheDocument();
-  });
-
-  it("shows disclaimer text in active chat state", async () => {
-    const { MainChatPanel } = await import("@/components/layout/MainChatPanel");
-    render(<MainChatPanel />);
-
-    const input = screen.getByRole("textbox", { name: /chat message/i });
-    await userEvent.type(input, "hi{Enter}");
-
-    expect(
-      await screen.findByText(/human oversight/i)
-    ).toBeInTheDocument();
-  });
-});
+// Removed: "active chat state (demo behavior)" tests.
+// The demo assistant streaming has been replaced by the real backend AI Gateway.
+// Streaming behavior is covered by sse-parse.test.ts and api-client.test.ts.

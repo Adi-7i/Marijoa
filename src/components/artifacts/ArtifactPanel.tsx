@@ -1,62 +1,72 @@
+"use client";
+
+import { useState } from "react";
 import type { Artifact } from "@/types/marijoa";
-import { BoxIcon } from "@/components/chat/icons";
-import styles from "@/components/layout/panel.module.css";
+import { Spinner } from "@/components/ui/Spinner";
+import { Notice } from "@/components/ui/Notice";
+import { ArtifactList } from "./ArtifactList";
+import { ArtifactDetail } from "./ArtifactDetail";
 
 interface ArtifactPanelProps {
   artifacts: Artifact[];
+  isLoading?: boolean;
+  error?: string | null;
+  onDelete?: (id: string) => Promise<void> | void;
 }
 
-const TYPE_LABEL: Record<Artifact["type"], string> = {
-  code: "Code",
-  document: "Doc",
-  chart: "Chart",
-  table: "Table",
-};
+export function ArtifactPanel({
+  artifacts,
+  isLoading = false,
+  error = null,
+  onDelete,
+}: ArtifactPanelProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-function formatDate(ts: number) {
-  const diff = Date.now() - ts;
-  const h = 60 * 60 * 1000;
-  const d = 24 * h;
-  if (diff < h) return "Just now";
-  if (diff < d) return `${Math.round(diff / h)}h ago`;
-  return `${Math.round(diff / d)}d ago`;
-}
+  const selected = artifacts.find((a) => a.id === selectedId) ?? null;
 
-export function ArtifactPanel({ artifacts }: ArtifactPanelProps) {
-  if (artifacts.length === 0) {
+  async function handleDelete(id: string) {
+    setPendingDeleteId(id);
+    try {
+      await onDelete?.(id);
+      setSelectedId(null);
+    } finally {
+      setPendingDeleteId(null);
+    }
+  }
+
+  if (isLoading && artifacts.length === 0) {
     return (
-      <div className={styles.placeholderHero}>
-        <div className={styles.placeholderIcon}>
-          <BoxIcon size={18} />
-        </div>
-        <p className={styles.placeholderTitle}>No artifacts yet</p>
-        <p className={styles.placeholderSub}>
-          Generated code, documents, and charts will appear here as you chat.
-        </p>
+      <div style={{ padding: 24, display: "flex", justifyContent: "center" }}>
+        <Spinner aria-label="Loading artifacts" />
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div style={{ padding: 16 }}>
+        <Notice>
+          <span role="alert">{error}</span>
+        </Notice>
+      </div>
+    );
+  }
+
+  if (selected) {
+    return (
+      <ArtifactDetail
+        artifact={selected}
+        onBack={() => setSelectedId(null)}
+        onDelete={pendingDeleteId === selected.id ? undefined : handleDelete}
+      />
+    );
+  }
+
   return (
-    <div>
-      <div className={styles.sectionHeader}>
-        <span className={styles.sectionTitle}>{artifacts.length} artifact{artifacts.length !== 1 ? "s" : ""}</span>
-      </div>
-      <div className={styles.placeholderList}>
-        {artifacts.map((artifact) => (
-          <div key={artifact.id} className={styles.artifactCard} role="article">
-            <div className={styles.artifactCardTop}>
-              <span className={styles.artifactCardType}>
-                <BoxIcon size={11} />
-              </span>
-              <span className={styles.artifactCardTitle}>{artifact.title}</span>
-            </div>
-            <span className={styles.artifactCardMeta}>
-              {TYPE_LABEL[artifact.type]} · {formatDate(artifact.createdAt)}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <ArtifactList
+      artifacts={artifacts}
+      onSelect={(id) => setSelectedId(id)}
+    />
   );
 }

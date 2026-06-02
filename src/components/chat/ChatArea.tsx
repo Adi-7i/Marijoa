@@ -12,11 +12,13 @@ import {
   type ReactNode,
 } from "react";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
+import type { ArtifactType } from "@/types/marijoa";
 import { APP_NAME, DISCLAIMER_TEXT, USER_GREETING } from "@/lib/constants";
 import styles from "@/components/chat/chat-ui.module.css";
 import { ArrowDownIcon, MarijoaMark, MenuIcon, PanelRightIcon, ShareIcon } from "@/components/chat/icons";
 import { InputBar } from "@/components/chat/InputBar";
 import { MessageList } from "@/components/chat/MessageList";
+import { SaveAsArtifactModal } from "@/components/artifacts/SaveAsArtifactModal";
 
 const ESTIMATED_MESSAGE_HEIGHT = 132;
 const VIRTUAL_OVERSCAN = 6;
@@ -47,11 +49,17 @@ interface ChatAreaProps {
   isThinking: boolean;
   onSend: (message: string) => void;
   onOpenSidebar: () => void;
-  onNewChat?: () => void;
+  /**
+   * Plus / paperclip button in the composer. Should open the file upload UI
+   * (right panel Files tab). Intentionally NOT wired to "new chat" or "reset
+   * chat" — the composer must never reset the active chat or workspace.
+   */
+  onAttach?: () => void;
   chatTitle?: string;
   contextSubtitle?: string;
   rightPanelOpen?: boolean;
   onToggleRightPanel?: () => void;
+  onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
 }
 
 const suggestions = [
@@ -65,12 +73,14 @@ export function ChatArea({
   isThinking,
   onSend,
   onOpenSidebar,
-  onNewChat,
+  onAttach,
   chatTitle,
   contextSubtitle,
   rightPanelOpen = false,
   onToggleRightPanel,
+  onSaveAsArtifact,
 }: ChatAreaProps) {
+  const [saveMessage, setSaveMessage] = useState<ChatMessageType | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFab, setShowFab] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
@@ -160,11 +170,17 @@ export function ChatArea({
             {shouldVirtualize ? (
               <div className={styles.virtualWindow} style={{ height: virtualState.height }}>
                 <div className={styles.virtualSlice} style={{ "--virtual-offset": `${virtualState.offset}px` } as CSSProperties}>
-                  <MessageList messages={virtualState.rendered} />
+                  <MessageList
+                    messages={virtualState.rendered}
+                    onSaveRequest={onSaveAsArtifact ? setSaveMessage : undefined}
+                  />
                 </div>
               </div>
             ) : (
-              <MessageList messages={virtualState.rendered} />
+              <MessageList
+                messages={virtualState.rendered}
+                onSaveRequest={onSaveAsArtifact ? setSaveMessage : undefined}
+              />
             )}
           </MessageErrorBoundary>
         ) : (
@@ -186,7 +202,7 @@ export function ChatArea({
                   </button>
                 ))}
               </div>
-              <InputBar onSend={onSend} onAttach={onNewChat} autoFocus />
+              <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
             </div>
           </div>
         )}
@@ -194,7 +210,7 @@ export function ChatArea({
 
       {hasMessages && (
         <div className={styles.inputDock}>
-          <InputBar onSend={onSend} onAttach={onNewChat} autoFocus />
+          <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
           <p className={styles.disclaimer}>{DISCLAIMER_TEXT}</p>
         </div>
       )}
@@ -203,6 +219,17 @@ export function ChatArea({
         <button type="button" className={styles.fab} aria-label="Scroll to bottom" onClick={() => scrollToBottom("smooth")}>
           <ArrowDownIcon />
         </button>
+      )}
+
+      {saveMessage && onSaveAsArtifact && (
+        <SaveAsArtifactModal
+          message={saveMessage}
+          onConfirm={(title, type) => {
+            onSaveAsArtifact(title, type, saveMessage.content);
+            setSaveMessage(null);
+          }}
+          onCancel={() => setSaveMessage(null)}
+        />
       )}
     </section>
   );

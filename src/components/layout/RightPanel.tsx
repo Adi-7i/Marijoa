@@ -1,9 +1,10 @@
 "use client";
 
 import type React from "react";
-import type { RightPanelTab, Artifact, FileItem } from "@/types/marijoa";
+import type { Artifact, FileItem, Organization, Workspace, WorkspaceContext, RightPanelTab } from "@/types/marijoa";
 import { ArtifactPanel } from "@/components/artifacts/ArtifactPanel";
 import { FilePanel } from "@/components/files/FilePanel";
+import { WorkspaceContextPanel } from "@/components/workspace/WorkspaceContextPanel";
 import { BoxIcon, FileTextIcon, InfoIcon, XIcon } from "@/components/chat/icons";
 import styles from "./panel.module.css";
 
@@ -14,15 +15,26 @@ interface RightPanelProps {
   onTabChange: (tab: RightPanelTab) => void;
   onClose: () => void;
   artifacts: Artifact[];
+  artifactsLoading?: boolean;
+  artifactsError?: string | null;
   files: FileItem[];
+  filesLoading?: boolean;
+  filesError?: string | null;
   workspaceName?: string;
   orgName?: string;
+  workspace?: Workspace;
+  org?: Organization;
+  context?: WorkspaceContext;
+  canUpload?: boolean;
+  onUploadFile?: (file: File) => Promise<void> | void;
+  onDeleteFile?: (id: string) => Promise<void> | void;
+  onDeleteArtifact?: (id: string) => Promise<void> | void;
 }
 
 const TABS: { id: RightPanelTab; label: string; Icon: TabIcon }[] = [
   { id: "artifacts", label: "Artifacts", Icon: BoxIcon },
-  { id: "files", label: "Files", Icon: FileTextIcon },
-  { id: "context", label: "Context", Icon: InfoIcon },
+  { id: "files",     label: "Files",     Icon: FileTextIcon },
+  { id: "context",   label: "Context",   Icon: InfoIcon },
 ];
 
 export function RightPanel({
@@ -30,9 +42,18 @@ export function RightPanel({
   onTabChange,
   onClose,
   artifacts,
+  artifactsLoading = false,
+  artifactsError = null,
   files,
-  workspaceName,
-  orgName,
+  filesLoading = false,
+  filesError = null,
+  workspace,
+  org,
+  context,
+  canUpload = false,
+  onUploadFile,
+  onDeleteFile,
+  onDeleteArtifact,
 }: RightPanelProps) {
   return (
     <aside className={styles.rightPanel} aria-label="Workspace panel">
@@ -63,30 +84,32 @@ export function RightPanel({
       </div>
 
       <div className={styles.rightPanelBody} role="tabpanel">
-        {tab === "artifacts" && <ArtifactPanel artifacts={artifacts} />}
-        {tab === "files" && <FilePanel files={files} />}
-        {tab === "context" && (
-          <div className={styles.contextSection}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionTitle}>Workspace Info</span>
-            </div>
-            {workspaceName && (
-              <div className={styles.contextRow}>
-                <span className={styles.contextLabel}>Workspace</span>
-                <span className={styles.contextValue}>{workspaceName}</span>
-              </div>
-            )}
-            {orgName && (
-              <div className={styles.contextRow}>
-                <span className={styles.contextLabel}>Organization</span>
-                <span className={styles.contextValue}>{orgName}</span>
-              </div>
-            )}
-            <div className={styles.contextRow}>
-              <span className={styles.contextLabel}>Model</span>
-              <span className={styles.contextValue}>Backend AI Gateway (pending integration)</span>
-            </div>
-          </div>
+        {tab === "artifacts" && (
+          <ArtifactPanel
+            artifacts={artifacts}
+            isLoading={artifactsLoading}
+            error={artifactsError}
+            onDelete={onDeleteArtifact}
+          />
+        )}
+        {tab === "files" && (
+          <FilePanel
+            files={files}
+            isLoading={filesLoading}
+            error={filesError}
+            canUpload={canUpload}
+            onUpload={onUploadFile}
+            onDelete={onDeleteFile}
+          />
+        )}
+        {tab === "context"   && (
+          <WorkspaceContextPanel
+            workspace={workspace}
+            org={org}
+            context={context}
+            artifacts={artifacts}
+            files={files}
+          />
         )}
       </div>
     </aside>

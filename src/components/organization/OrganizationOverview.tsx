@@ -110,7 +110,7 @@ export function OrganizationOverview({
             <button
               type="button"
               className={styles.actionBtn}
-              onClick={() => setToastMsg("Add Workspace — will be available after backend integration.")}
+              onClick={() => setToastMsg("Workspace creation is coming soon.")}
             >
               <PlusCircleIcon size={14} aria-hidden="true" />
               Add Workspace
@@ -118,7 +118,7 @@ export function OrganizationOverview({
             <button
               type="button"
               className={styles.actionBtn}
-              onClick={() => setToastMsg("Invite Member — will be available after backend integration.")}
+              onClick={() => setToastMsg("Member invites are coming soon.")}
             >
               <UsersIcon size={14} aria-hidden="true" />
               Invite Member
