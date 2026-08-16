@@ -427,54 +427,162 @@
   color: var(--color-text-primary);
 }
 
-.thoughtToggle {
+/* ─── Thinking indicator (shown before first token, NOT raw reasoning) ──── */
+
+.thinkingIndicator {
   display: flex;
-  min-height: 32px;
   align-items: center;
   gap: 8px;
-  border: 0;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
+  padding: 6px 0;
+  color: var(--color-text-muted);
   font-size: 13px;
-  font-weight: 500;
-  padding: 0;
+  font-style: italic;
 }
 
-.thoughtIcon {
-  width: 18px;
-  height: 18px;
+.thinkingIcon {
+  flex: 0 0 auto;
   color: var(--color-accent);
+}
+
+.thinkingLabel {
+  line-height: 1;
 }
 
 .spinning {
   animation: spin 2s linear infinite;
 }
 
-.chevron {
-  transition: transform 160ms ease;
+/* ─── Reasoning summary disclosure ─────────────────────────────────────── */
+/* Collapsed by default. User can expand. Never exposes raw chain-of-thought. */
+
+.reasoningDisclosure {
+  margin-top: 8px;
 }
 
-.chevronOpen {
+.reasoningToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 3px 0;
+  transition: color 120ms ease;
+}
+
+.reasoningToggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.reasoningToggle:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.reasoningChevron {
+  transition: transform 180ms ease;
+  color: inherit;
+}
+
+.reasoningChevronOpen {
   transform: rotate(180deg);
 }
 
-.thoughtContent {
-  max-height: 0;
+.reasoningContent {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms ease;
   overflow: hidden;
-  border-left: 2px solid transparent;
-  color: #8b8b8b;
-  font-size: 13px;
-  line-height: 1.55;
-  margin: 0 0 8px 8px;
-  padding-left: 12px;
-  transition: max-height 180ms ease, border-color 180ms ease, margin 180ms ease;
 }
 
-.thoughtExpanded {
-  max-height: 240px;
-  border-left-color: var(--color-border);
-  margin-top: 4px;
+.reasoningContentOpen {
+  grid-template-rows: 1fr;
+}
+
+.reasoningContent > p,
+.reasoningText {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.reasoningText {
+  margin: 6px 0 4px 14px;
+  border-left: 2px solid var(--color-border);
+  padding-left: 10px;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ─── Message error state ────────────────────────────────────────────────── */
+/* Clean user-facing error UI. Never shows raw backend errors or stack traces. */
+
+.errorState {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #fde8e8;
+  background: #fff8f8;
+  color: #7f2020;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.errorStateIcon {
+  flex: 0 0 auto;
+  color: #dc2626;
+  margin-top: 1px;
+}
+
+.errorStateBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.errorStateMessage {
+  margin: 0;
+  font-weight: 500;
+  color: #7f2020;
+}
+
+.errorStateDetail {
+  margin: 4px 0 0;
+  color: #9b3030;
+  font-size: 12.5px;
+}
+
+.errorStateRetry {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 5px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 999px;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.errorStateRetry:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.errorStateRetry:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
 }
 
 .assistantText {

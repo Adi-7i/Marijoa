@@ -4,20 +4,26 @@ Given a user message and a requested :class:`~app.modules.web_search.schemas.Web
 returns a :class:`SearchDecision` describing whether to call the web search
 provider and, if so, with which queries.
 
-Strategy:
+Architecture:
 
 1. ``WebMode.OFF`` → never search.
-2. ``WebMode.SEARCH`` → always search; query defaults to the user message.
+2. ``WebMode.SEARCH`` → always search; generate focused queries from intent.
 3. ``WebMode.AUTO`` →
-   * Run cheap regex/keyword rules. If they fire strongly, search.
-   * If they reject strongly, skip search.
-   * If neither (ambiguous), optionally ask the LLM to decide. If LLM is
-     disabled or fails, default to no search — the AI can always answer
-     without it.
+   a. Check if the query is a SYSTEM UTILITY request (date/time/timezone).
+      If so → skip search entirely (the prompt builder already injects
+      authoritative datetime data).
+   b. Run semantic freshness + intent analysis via rules.
+   c. If rules trigger strongly → generate focused search queries and search.
+   d. If rules reject strongly → skip search.
+   e. If ambiguous → optionally ask the LLM to decide.
 
-The decider deliberately keeps the LLM decision payload small: only the
-user's current message is passed in, not the entire chat history. This
-limits cost, latency, and the surface for prompt injection.
+Key design principles:
+
+* "Web search enabled" means the tool is AVAILABLE, not that it must be used.
+* Each turn makes an independent routing decision (no carryover from previous turns).
+* System-utility queries (date, time) use the server clock, not SearXNG.
+* Search queries are semantically generated, not raw user messages.
+* The decider is unit-testable without any LLM or network calls.
 """
 
 from __future__ import annotations
@@ -35,7 +41,48 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Rule-based triggers
+# System utility detection — date/time queries bypass web search entirely
+# ---------------------------------------------------------------------------
+
+# Patterns that indicate the user wants date, time, day-of-week, or timezone
+# information. These are SYSTEM UTILITY requests answered by the server clock.
+# They must NEVER trigger a web search.
+_SYSTEM_UTILITY_PATTERNS: tuple[re.Pattern[str], ...] = (
+    # "what is today's date", "today date", "what date is today"
+    re.compile(r"\b(?:today(?:'?s)?|current|aaj\s*(?:ki|ka)?)\s*(?:date|tarikh|din)\b", re.IGNORECASE),
+    # "what date is it", "what day is it today"
+    re.compile(r"\bwhat\s+(?:date|day)\s+is\s+(?:it|today)\b", re.IGNORECASE),
+    # "current time", "what time is it", "time right now"
+    re.compile(r"\b(?:current|present)\s+time\b", re.IGNORECASE),
+    re.compile(r"\bwhat\s+time\s+is\s+it\b", re.IGNORECASE),
+    re.compile(r"\btime\s+right\s+now\b", re.IGNORECASE),
+    re.compile(r"\babhi\s+(?:time|samay|waqt)\b", re.IGNORECASE),
+    # "what day is today", "today is what day"
+    re.compile(r"\bwhat\s+day\s+(?:is\s+)?today\b", re.IGNORECASE),
+    re.compile(r"\btoday\s+(?:is\s+)?(?:what|which)\s+day\b", re.IGNORECASE),
+    # "today's day", "aaj ka din"
+    re.compile(r"\btoday(?:'?s)?\s+day\b", re.IGNORECASE),
+    # Bare "what is today" — usually means date
+    re.compile(r"^what\s+is\s+today\s*[\?\.]?\s*$", re.IGNORECASE),
+    # "tell me the date/time"
+    re.compile(r"\btell\s+(?:me\s+)?the\s+(?:current\s+)?(?:date|time)\b", re.IGNORECASE),
+)
+
+
+def _is_system_utility(text: str) -> bool:
+    """Return True if the query is a system-utility request (date/time/timezone).
+
+    These are answered by the server clock injected in the prompt builder.
+    Web search would be wasteful and potentially misleading for these.
+    """
+    for pattern in _SYSTEM_UTILITY_PATTERNS:
+        if pattern.search(text):
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Rule-based triggers — semantic freshness analysis
 # ---------------------------------------------------------------------------
 
 # Strong "search" signals — case-insensitive whole-word matches. Includes
@@ -221,6 +268,15 @@ def evaluate_rules(message: str) -> _RuleVerdict:
     if not text:
         return _RuleVerdict(should_search=False, reason="Empty message")
 
+    # SYSTEM UTILITY CHECK — date/time queries are answered by the server
+    # clock, not web search. This must run BEFORE keyword triggers to prevent
+    # "today" or "current" from firing a web search for date/time questions.
+    if _is_system_utility(text):
+        return _RuleVerdict(
+            should_search=False,
+            reason="System utility query (date/time) — answered from server clock",
+        )
+
     veto = _contains_any(text, _SEARCH_VETO_KEYWORDS)
     if veto is not None:
         return _RuleVerdict(
@@ -258,19 +314,72 @@ def evaluate_rules(message: str) -> _RuleVerdict:
 
 
 # ---------------------------------------------------------------------------
+# Semantic search query generation
+# ---------------------------------------------------------------------------
+
+
+def _generate_search_queries(message: str, max_queries: int) -> list[str]:
+    """Generate focused search-engine-friendly queries from the user's message.
+
+    Instead of sending the raw user message to SearXNG (which often produces
+    poor results for conversational text), this function extracts the core
+    information need and produces concise queries.
+
+    For simple messages this may return the cleaned message directly.
+    For complex messages it attempts to produce 1-3 focused queries.
+    """
+    cleaned = (message or "").strip()
+    if not cleaned:
+        return []
+
+    # For short, already-focused messages (≤ 60 chars), use as-is
+    if len(cleaned) <= 60:
+        return [cleaned][:max_queries]
+
+    # For longer messages, try to extract the core search intent
+    # Remove conversational prefixes
+    query = cleaned
+    prefixes_to_strip = [
+        r"^(?:can you |could you |please |tell me |show me |find me |i want to know |i need to know )",
+        r"^(?:what is |what are |what's |who is |who are |where is |where are |when is |when was )",
+    ]
+    simplified = query
+    for pattern in prefixes_to_strip:
+        simplified = re.sub(pattern, "", simplified, flags=re.IGNORECASE).strip()
+
+    # If simplification made it too short, use the original
+    if len(simplified) < 5:
+        simplified = cleaned
+
+    # Truncate to reasonable search query length
+    if len(simplified) > 120:
+        # Try to break at a word boundary
+        simplified = simplified[:120].rsplit(" ", 1)[0]
+
+    return [simplified][:max_queries]
+
+
+# ---------------------------------------------------------------------------
 # Optional LLM decider for ambiguous queries
 # ---------------------------------------------------------------------------
 
 
 _LLM_DECIDER_INSTRUCTION = """You are a router that decides whether a user query needs a live web search to be answered correctly.
 
+Important system capabilities already available (no web search needed for these):
+- Current date, time, and day of week are known from the server clock.
+- The model has extensive general knowledge through its training data.
+- Mathematical calculations can be performed directly.
+
 Return ONLY a strict JSON object with this shape:
 {"should_search": <true|false>, "reason": <short string>, "queries": [<up to 3 concise search-engine-friendly queries>]}
 
 Rules:
-- should_search must be true ONLY if answering well requires current, recent, or live information from the web.
-- If the query is a stable concept (e.g. math, definitions, general code, historical fact, rewriting, translation), set should_search=false and queries=[].
-- Generate at most 3 short search queries (5-12 words each). No URLs, no quotes around the whole string.
+- should_search must be true ONLY if answering well requires current, recent, or live information from the web that the model cannot reliably know.
+- Date/time questions: should_search=false (system clock provides this).
+- Stable concepts (math, definitions, general code, historical fact, rewriting, translation): should_search=false.
+- Current events, prices, news, weather, live scores, recent releases, current officeholders: should_search=true.
+- Generate at most 3 short, focused search queries (5-12 words each). Make them search-engine-friendly, not conversational.
 - Do NOT include any explanation outside the JSON. No prose, no markdown."""
 
 
@@ -350,9 +459,9 @@ def _llm_decide(message: str, max_queries: int) -> SearchDecision | None:
             break
 
     if should_search and not queries:
-        # The LLM said "yes" but gave no queries — fall back to the raw
-        # message so the caller can still run a search.
-        queries.append(message.strip())
+        # The LLM said "yes" but gave no queries — generate focused queries
+        # from the message instead of using the raw message.
+        queries = _generate_search_queries(message.strip(), max_queries)
 
     return SearchDecision(
         should_search=should_search,
@@ -369,10 +478,12 @@ def _llm_decide(message: str, max_queries: int) -> SearchDecision | None:
 
 
 def _build_forced_decision(message: str, max_queries: int) -> SearchDecision:
-    """Construct a decision for ``WebMode.SEARCH`` (user-forced search)."""
-    cleaned = (message or "").strip()
-    queries: list[str] = [cleaned] if cleaned else []
-    queries = queries[:max_queries]
+    """Construct a decision for ``WebMode.SEARCH`` (user-forced search).
+
+    Even when the user forces search, we generate focused queries rather
+    than passing the raw message to improve result quality.
+    """
+    queries = _generate_search_queries(message, max_queries)
     return SearchDecision(
         should_search=True,
         reason="User explicitly requested a web search",
@@ -398,6 +509,16 @@ def decide(
     mode: WebMode,
 ) -> SearchDecision:
     """Top-level decider for the AI gateway.
+
+    Each call makes an independent routing decision based solely on the current
+    message and mode. Conversation history does NOT carry forward search state.
+
+    The decision follows this priority order:
+    1. Mode override (OFF → never, SEARCH → always)
+    2. System utility detection (date/time → no search)
+    3. Keyword-based rules (triggers / vetoes / low-priority)
+    4. LLM-based routing (for ambiguous queries)
+    5. Safe default (no search)
 
     Args:
         message: The current user message text.
@@ -426,17 +547,28 @@ def decide(
         verdict = _RuleVerdict(should_search=None, reason="Rule decider disabled")
 
     if verdict.should_search is True:
-        cleaned = (message or "").strip()
-        queries = [cleaned] if cleaned else []
+        # Generate focused search queries instead of using the raw message
+        queries = _generate_search_queries(message.strip(), max_queries)
+
+        logger.info(
+            "Search decision: SEARCH (rule) — reason=%r queries=%r",
+            verdict.reason,
+            queries,
+        )
+
         return SearchDecision(
             should_search=True,
             reason=verdict.reason,
-            queries=queries[:max_queries],
+            queries=queries,
             mode=WebMode.AUTO,
             decision_source="rule",
         )
 
     if verdict.should_search is False:
+        logger.info(
+            "Search decision: SKIP — reason=%r",
+            verdict.reason,
+        )
         return SearchDecision(
             should_search=False,
             reason=verdict.reason,
@@ -453,9 +585,19 @@ def decide(
     if llm_enabled:
         llm_decision = _llm_decide(message, max_queries=max_queries)
         if llm_decision is not None:
+            logger.info(
+                "Search decision: %s (LLM) — reason=%r queries=%r",
+                "SEARCH" if llm_decision.should_search else "SKIP",
+                llm_decision.reason,
+                llm_decision.queries,
+            )
             return llm_decision
 
     # Safe default for ambiguous queries when no LLM is available.
+    logger.info(
+        "Search decision: SKIP (default) — reason=%r",
+        verdict.reason,
+    )
     return SearchDecision(
         should_search=False,
         reason=verdict.reason + " — defaulting to no search",

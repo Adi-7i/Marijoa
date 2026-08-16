@@ -11,6 +11,7 @@ interface MessageListProps {
   onCancelResearch?: (sessionId: string) => void;
   onExpandResearch?: (sessionId: string) => void;
   onExportResearchPdf?: (sessionId: string) => void;
+  onRetry?: () => void;
 }
 
 export function MessageList({
@@ -21,6 +22,7 @@ export function MessageList({
   onCancelResearch,
   onExpandResearch,
   onExportResearchPdf,
+  onRetry,
 }: MessageListProps) {
   if (messages.length === 0) return null;
 
@@ -41,6 +43,7 @@ export function MessageList({
           onCancelResearch={onCancelResearch}
           onExpandResearch={onExpandResearch}
           onExportResearchPdf={onExportResearchPdf}
+          onRetry={onRetry}
         />
       ))}
     </div>

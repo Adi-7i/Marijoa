@@ -72,6 +72,8 @@ interface ChatAreaProps {
   onCloseResearchCanvas?: () => void;
   onExportResearchPdf?: (sessionId: string) => void;
   expandedResearch?: DeepResearchCardState | null;
+  /** Called when the user clicks "Try again" on a failed assistant message. */
+  onRetry?: () => void;
 }
 
 interface PromptSuggestion {
@@ -123,6 +125,7 @@ export function ChatArea({
   onCloseResearchCanvas,
   onExportResearchPdf,
   expandedResearch,
+  onRetry,
 }: ChatAreaProps) {
   const [saveMessage, setSaveMessage] = useState<ChatMessageType | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -253,6 +256,7 @@ export function ChatArea({
                     onCancelResearch={onCancelResearch}
                     onExpandResearch={onExpandResearch}
                     onExportResearchPdf={onExportResearchPdf}
+                    onRetry={onRetry}
                   />
                 </div>
               </div>
@@ -264,6 +268,7 @@ export function ChatArea({
                 onCancelResearch={onCancelResearch}
                 onExpandResearch={onExpandResearch}
                 onExportResearchPdf={onExportResearchPdf}
+                onRetry={onRetry}
               />
             )}
           </MessageErrorBoundary>

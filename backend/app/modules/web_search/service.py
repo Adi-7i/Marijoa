@@ -84,6 +84,39 @@ def run_search_for_message(
     """
     decision = search_decider.decide(message=message, mode=mode)
 
+    # Developer observability logging (never exposed to UI)
+    intent_guess = "UNKNOWN"
+    freshness = "UNKNOWN"
+    tool = "UNKNOWN"
+
+    if decision.mode == WebMode.OFF:
+        intent_guess = "STATIC"
+        freshness = "NOT_REQUESTED"
+        tool = "NONE"
+    elif "System utility" in decision.reason:
+        intent_guess = "CURRENT_TIME"
+        freshness = "LIVE"
+        tool = "TIME"
+    elif not decision.should_search:
+        intent_guess = "STATIC_KNOWLEDGE"
+        freshness = "STATIC"
+        tool = "NONE"
+    else:
+        intent_guess = "CURRENT_RESEARCH"
+        freshness = "LIVE"
+        tool = "SEARXNG"
+
+    log_block = (
+        "\n--- ROUTING DECISION ---\n"
+        f"Query:\n{message!r}\n\n"
+        f"Intent:\n{intent_guess}\n\n"
+        f"Freshness:\n{freshness}\n\n"
+        f"Tool:\n{tool}\n\n"
+        f"Web search:\n{'REQUIRED' if decision.should_search else 'NOT REQUIRED'}\n"
+        "------------------------"
+    )
+    logger.info(log_block)
+
     if not decision.should_search or not decision.queries:
         return WebSearchOutcome(
             decision=decision,

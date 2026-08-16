@@ -20,6 +20,8 @@ Design notes:
 
 from __future__ import annotations
 
+import datetime
+
 GLOBAL_RESPONSE_PRESENTATION_POLICY: str = """You are Marijoa AI, a clear, practical, professional AI assistant for personal and business workflows.
 
 Before answering:
@@ -68,6 +70,28 @@ Intent-based formatting guide:
 # them deterministically without hard-coding the exact wording.
 _WORKSPACE_HEADER = "Workspace context"
 _MODULE_HEADER = "Module context"
+_DATETIME_HEADER = "Current date and time"
+
+
+def _build_datetime_section() -> str:
+    """Generate a current-date/time section for the developer prompt.
+
+    This gives the model accurate, authoritative time information so
+    date/time questions can be answered directly without web search.
+    The data comes from the server clock — the source of truth for
+    system-utility queries like "what is today's date?".
+    """
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    # Also compute IST since the primary user base is India-based
+    ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+    now_ist = now_utc.astimezone(ist)
+    return (
+        f"{_DATETIME_HEADER}:\n"
+        f"UTC: {now_utc.strftime('%A, %B %d, %Y at %H:%M:%S %Z')}\n"
+        f"IST (India Standard Time): {now_ist.strftime('%A, %B %d, %Y at %H:%M:%S %Z')}\n"
+        f"Use this authoritative time information to answer any date, time, or day-of-week questions directly. "
+        f"Do not claim to be unable to provide the current date or time."
+    )
 
 
 def build_response_presentation_instruction(
@@ -98,6 +122,10 @@ def build_response_presentation_instruction(
     """
     sections: list[str] = [GLOBAL_RESPONSE_PRESENTATION_POLICY.strip()]
 
+    # Always inject current date/time so the model can answer system-utility
+    # questions (date, time, day-of-week) directly from authoritative data.
+    sections.append(_build_datetime_section())
+
     if workspace_instruction and workspace_instruction.strip():
         sections.append(
             f"{_WORKSPACE_HEADER}:\n{workspace_instruction.strip()}"
@@ -111,3 +139,4 @@ def build_response_presentation_instruction(
     # Join with a blank line separator and strip trailing whitespace to keep
     # the developer message clean.
     return "\n\n".join(sections).rstrip()
+

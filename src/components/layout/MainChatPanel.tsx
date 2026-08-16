@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { Notice } from "@/components/ui/Notice";
 import { useChat } from "@/hooks/useChat";
@@ -59,6 +59,9 @@ export function MainChatPanel({
     onChatActivity,
   });
 
+  // Track the last user message text so the retry button can re-send it.
+  const lastUserContentRef = useRef<string>("");
+
   const {
     messages: deepResearchMessages,
     isDeepResearchMode,
@@ -107,8 +110,17 @@ export function MainChatPanel({
       setSendError("Select or create a workspace first.");
       return;
     }
+    lastUserContentRef.current = content;
     void sendMessage(content, { webMode: webSearchEnabled ? "auto" : "off" });
   };
+
+  /** Re-send the last user message. Used by the error state "Try again" button. */
+  const handleRetry = useCallback(() => {
+    const content = lastUserContentRef.current;
+    if (!content || !workspaceId) return;
+    setSendError(null);
+    void sendMessage(content, { webMode: webSearchEnabled ? "auto" : "off" });
+  }, [sendMessage, webSearchEnabled, workspaceId]);
 
   const allMessages = [...visibleMessages, ...deepResearchMessages].sort(
     (a, b) => a.timestamp - b.timestamp
@@ -158,6 +170,7 @@ export function MainChatPanel({
         onCloseResearchCanvas={closeCanvas}
         onExportResearchPdf={exportPdf}
         expandedResearch={expandedResearch}
+        onRetry={handleRetry}
       />
     </main>
   );

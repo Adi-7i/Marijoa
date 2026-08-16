@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from app.modules.ai_gateway.prompt_builder import build_provider_messages
 from app.modules.ai_gateway.response_presentation import (
     GLOBAL_RESPONSE_PRESENTATION_POLICY,
+    _DATETIME_HEADER,
     build_response_presentation_instruction,
 )
 
@@ -46,9 +47,10 @@ def test_policy_string_is_non_trivial() -> None:
 
 
 def test_build_with_no_workspace_returns_policy_only() -> None:
-    """With no extra context, the builder returns just the global policy."""
+    """With no extra context, the builder returns the global policy + datetime."""
     result = build_response_presentation_instruction()
-    assert result == GLOBAL_RESPONSE_PRESENTATION_POLICY.strip()
+    assert GLOBAL_RESPONSE_PRESENTATION_POLICY.strip() in result
+    assert _DATETIME_HEADER in result
     # No section headers should appear.
     assert "Workspace context" not in result
     assert "Module context" not in result
