@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { OrganizationMember, OrganizationRole } from "@/types/marijoa";
 import { RoleBadge } from "@/components/organization/RoleBadge";
+import { InviteMemberModal } from "@/components/organization/InviteMemberModal";
 import { MemberStatusBadge } from "./MemberStatusBadge";
 import { UserPlusIcon } from "@/components/chat/icons";
 import { formatRelative } from "@/lib/format";
@@ -32,9 +33,15 @@ const ACTION_NOTICE =
 
 interface AdminUsersTableProps {
   members: OrganizationMember[];
+  organizationId?: string;
+  onInviteCreated?: () => void;
 }
 
-export function AdminUsersTable({ members }: AdminUsersTableProps) {
+export function AdminUsersTable({
+  members,
+  organizationId,
+  onInviteCreated,
+}: AdminUsersTableProps) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | OrganizationRole>("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -180,30 +187,14 @@ export function AdminUsersTable({ members }: AdminUsersTableProps) {
 
       {notice && <p className={styles.notice}>{notice}</p>}
 
-      {/* Invite Member Modal */}
-      {showInviteModal && (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="invite-modal-title"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowInviteModal(false); }}
-        >
-          <div className={styles.modal}>
-            <p className={styles.modalTitle} id="invite-modal-title">Invite Member</p>
-            <p className={styles.modalBody}>
-              Member invitations are coming soon. They will send email notifications and create
-              pending membership records in your organization.
-            </p>
-            <button
-              type="button"
-              className={styles.modalClose}
-              onClick={() => setShowInviteModal(false)}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
+      {showInviteModal && organizationId && (
+        <InviteMemberModal
+          organizationId={organizationId}
+          onInvited={() => {
+            onInviteCreated?.();
+          }}
+          onClose={() => setShowInviteModal(false)}
+        />
       )}
     </div>
   );

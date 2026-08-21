@@ -6,10 +6,12 @@ import { listMessages } from "@/lib/api/messages";
 import { streamAIResponse } from "@/lib/api/ai";
 import { createChat as apiCreateChat } from "@/lib/api/chats";
 import type { ChatMessage } from "@/types/chat";
-import type { Chat, Message } from "@/types/marijoa";
+import type { Chat, Message, WebMode } from "@/types/marijoa";
 
-const STREAM_FLUSH_MS = 50;
 const MAX_VISIBLE_MESSAGES = 200;
+// Fallback flush interval used when requestAnimationFrame is unavailable
+// (e.g. headless test environments).
+const STREAM_FLUSH_FALLBACK_MS = 33;
 
 function createLocalId(prefix: string): string {
   const random = typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -18,21 +20,71 @@ function createLocalId(prefix: string): string {
   return `${prefix}-${random}`;
 }
 
+/**
+ * Normalize a persisted Message into a ChatMessage safe for display.
+ *
+ * Security contract: NEVER forward raw model reasoning, chain-of-thought,
+ * or internal fields to the UI layer. Only whitelist known-safe fields.
+ */
 function toChatMessage(message: Message): ChatMessage {
-  if (message.role !== "user" && message.role !== "assistant") {
-    return {
-      id: message.id,
-      role: "assistant",
-      content: message.content,
-      timestamp: message.timestamp,
-    };
-  }
+  const role: ChatMessage["role"] =
+    message.role === "user" || message.role === "assistant" ? message.role : "assistant";
   return {
     id: message.id,
-    role: message.role,
+    role,
+    // content is the final answer only — never mixed with reasoning tokens
     content: message.content,
     timestamp: message.timestamp,
+    // Explicitly whitelist user-facing fields; do NOT spread message to avoid
+    // accidentally forwarding internal fields like raw thoughts/reasoning.
+    sources: message.sources,
+    webSearchUsed: message.webSearchUsed,
+    webMode: message.webMode,
+    searchQueries: message.searchQueries,
+    streamPhase: "complete",
+    // reasoningSummary intentionally omitted from history — persisted messages
+    // do not currently carry a safe summary, and we must never use raw
+    // chain-of-thought from the backend as a summary.
   };
+}
+
+/**
+ * Maps a provider error code to a safe, user-facing message.
+ * NEVER expose raw backend/SDK error messages to the user.
+ */
+function mapErrorCodeToUserMessage(code: string): string {
+  switch (code) {
+    case "AI_AUTH_FAILED":
+    case "AI_CONFIGURATION_ERROR":
+      return "Something went wrong while generating the response. Please try again.";
+    case "AI_RATE_LIMIT":
+      return "The AI service is currently busy. Please wait a moment and try again.";
+    case "AI_SERVICE_UNAVAILABLE":
+    case "AI_PROVIDER_ERROR":
+      return "Something went wrong while generating the response. Please try again.";
+    case "AI_RESPONSE_ERROR":
+      return "The response could not be completed. Please try again.";
+    default:
+      return "Something went wrong while generating the response. Please try again.";
+  }
+}
+
+/**
+ * Maps a provider error code to an optional secondary detail shown in the error state.
+ * Detail must be vague enough to be safe for end-users.
+ */
+function mapErrorCodeToDetail(code: string): string | undefined {
+  switch (code) {
+    case "AI_AUTH_FAILED":
+    case "AI_CONFIGURATION_ERROR":
+      return "Authentication with the AI provider failed.";
+    case "AI_RATE_LIMIT":
+      return "Rate limit reached.";
+    case "AI_SERVICE_UNAVAILABLE":
+      return "The AI service is temporarily unavailable.";
+    default:
+      return undefined;
+  }
 }
 
 interface UseChatOptions {
@@ -49,7 +101,7 @@ export interface UseChatResult {
   isThinking: boolean;
   isLoading: boolean;
   loadError: string | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, options?: { webMode?: WebMode }) => Promise<void>;
   reload: () => Promise<void>;
   reset: () => void;
 }
@@ -68,6 +120,7 @@ export function useChat({
 
   const abortRef = useRef<AbortController | null>(null);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushFrameRef = useRef<number | null>(null);
   const bufferRef = useRef("");
   const loadRequestId = useRef(0);
   const chatIdRef = useRef<string | null>(chatId);
@@ -80,17 +133,25 @@ export function useChat({
   // optimistic messages with an empty history fetch (Bug 4).
   const activeStreamChatIdRef = useRef<string | null>(null);
 
+  const clearFlushHandles = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    if (flushFrameRef.current !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(flushFrameRef.current);
+      flushFrameRef.current = null;
+    }
+  }, []);
+
   const cancelStream = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
     }
-    if (flushTimerRef.current) {
-      clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
-    }
+    clearFlushHandles();
     bufferRef.current = "";
-  }, []);
+  }, [clearFlushHandles]);
 
   const reset = useCallback(() => {
     cancelStream();
@@ -142,6 +203,8 @@ export function useChat({
       setIsLoading(false);
       return;
     }
+    setMessages([]);
+    setIsThinking(false);
     void loadHistory(chatId);
   }, [chatId, cancelStream, loadHistory]);
 
@@ -165,19 +228,31 @@ export function useChat({
     if (done) setIsThinking(false);
   }, []);
 
+  // Flush buffered tokens aligned with the next paint. requestAnimationFrame
+  // gives smooth ~60fps updates instead of arbitrary 50ms chunks, which is
+  // what makes ChatGPT/Claude streaming feel fluid. We coalesce all tokens
+  // that arrive between frames into one setState — heavy markdown trees
+  // re-render at most once per frame, not once per token.
   const scheduleFlush = useCallback(
     (assistantId: string) => {
-      if (flushTimerRef.current) return;
-      flushTimerRef.current = setTimeout(() => {
-        flushTimerRef.current = null;
-        flushBufferTo(assistantId, false);
-      }, STREAM_FLUSH_MS);
+      if (flushFrameRef.current !== null || flushTimerRef.current) return;
+      if (typeof requestAnimationFrame === "function") {
+        flushFrameRef.current = requestAnimationFrame(() => {
+          flushFrameRef.current = null;
+          flushBufferTo(assistantId, false);
+        });
+      } else {
+        flushTimerRef.current = setTimeout(() => {
+          flushTimerRef.current = null;
+          flushBufferTo(assistantId, false);
+        }, STREAM_FLUSH_FALLBACK_MS);
+      }
     },
     [flushBufferTo]
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, options: { webMode?: WebMode } = {}) => {
       const trimmed = content.trim();
       if (!trimmed || !workspaceId) return;
 
@@ -221,6 +296,7 @@ export function useChat({
         content: "",
         timestamp: now + 1,
         isStreaming: true,
+        streamPhase: "thinking",
       };
 
       setMessages((prev) =>
@@ -245,6 +321,7 @@ export function useChat({
       try {
         await streamAIResponse(activeChatId, trimmed, {
           signal: controller.signal,
+          webMode: options.webMode,
           onStart: (payload) => {
             if (!payload.userMessageId) return;
             setMessages((prev) =>
@@ -253,43 +330,93 @@ export function useChat({
               )
             );
           },
-          onToken: (chunk) => {
-            bufferRef.current += chunk;
-            scheduleFlush(assistantLocalId);
-          },
-          onDone: (payload) => {
-            if (flushTimerRef.current) {
-              clearTimeout(flushTimerRef.current);
-              flushTimerRef.current = null;
-            }
-            flushBufferTo(assistantLocalId, true);
-            if (payload.messageId) {
-              const finalId = payload.messageId;
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantLocalId ? { ...m, id: finalId } : m))
-              );
-            }
-            clearActiveStream();
-            onChatActivity?.();
-          },
-          onError: (payload) => {
-            if (flushTimerRef.current) {
-              clearTimeout(flushTimerRef.current);
-              flushTimerRef.current = null;
-            }
+          onWebSearchStart: ({ queries }) => {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantLocalId
                   ? {
                       ...m,
-                      content: m.content || `Assistant error: ${payload.message}`,
+                      searchStatus: "searching",
+                      searchQueries: queries.length > 0 ? queries : m.searchQueries,
+                    }
+                  : m
+              )
+            );
+          },
+          onWebSources: ({ sources }) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantLocalId
+                  ? {
+                      ...m,
+                      sources,
+                      searchStatus: "complete",
+                      webSearchUsed: sources.length > 0,
+                    }
+                  : m
+              )
+            );
+          },
+          onToken: (chunk) => {
+            bufferRef.current += chunk;
+            // Transition from "thinking" to "answering" on first token
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantLocalId && m.streamPhase === "thinking"
+                  ? { ...m, streamPhase: "answering" as const }
+                  : m
+              )
+            );
+            scheduleFlush(assistantLocalId);
+          },
+          onDone: (payload) => {
+            clearFlushHandles();
+            flushBufferTo(assistantLocalId, true);
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantLocalId) return m;
+                const updated: ChatMessage = {
+                  ...m,
+                  searchStatus: null,
+                  streamPhase: "complete",
+                };
+                if (payload.messageId) updated.id = payload.messageId;
+                if (payload.webSearchUsed !== undefined) {
+                  updated.webSearchUsed = payload.webSearchUsed;
+                }
+                return updated;
+              })
+            );
+            clearActiveStream();
+            onChatActivity?.();
+          },
+          onError: (payload) => {
+            clearFlushHandles();
+            // Map provider error codes to safe user-facing messages.
+            // NEVER put raw SDK error messages or stack traces into content.
+            const safeMessage = mapErrorCodeToUserMessage(payload.code);
+            const safeDetail = mapErrorCodeToDetail(payload.code);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantLocalId
+                  ? {
+                      ...m,
+                      // Keep any partial answer that had already streamed
                       isStreaming: false,
+                      streamPhase: "error" as const,
+                      errorState: {
+                        message: safeMessage,
+                        detail: safeDetail,
+                      },
                     }
                   : m
               )
             );
             setIsThinking(false);
-            setLoadError(payload.message);
+            // Log the internal code for debugging but don't expose to UI
+            if (process.env.NODE_ENV === "development") {
+              console.error("[useChat] stream error:", payload.code, payload.message);
+            }
             clearActiveStream();
           },
         });
@@ -298,26 +425,37 @@ export function useChat({
           clearActiveStream();
           return;
         }
-        const message =
-          err instanceof ApiError ? err.message : "AI response failed.";
+        // Log internally for debugging, but never expose raw errors to the UI
+        if (process.env.NODE_ENV === "development") {
+          console.error("[useChat] unexpected stream failure:", err);
+        }
+        const isNetworkError = err instanceof ApiError && err.isNetworkError;
+        const safeMessage = isNetworkError
+          ? "Could not reach the server. Please check your connection."
+          : "Something went wrong while generating the response. Please try again.";
+        const safeDetail =
+          err instanceof ApiError && err.status === 401
+            ? "Authentication with the AI provider failed."
+            : undefined;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantLocalId
               ? {
                   ...m,
-                  content: m.content || `Assistant error: ${message}`,
                   isStreaming: false,
+                  streamPhase: "error" as const,
+                  errorState: { message: safeMessage, detail: safeDetail },
                 }
               : m
           )
         );
         setIsThinking(false);
-        setLoadError(message);
         clearActiveStream();
       }
     },
     [
       cancelStream,
+      clearFlushHandles,
       flushBufferTo,
       onChatActivity,
       onChatCreated,

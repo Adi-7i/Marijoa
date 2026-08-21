@@ -7,9 +7,23 @@ interface MessageListProps {
   messages: ChatMessageType[];
   virtualOffset?: number;
   onSaveRequest?: (message: ChatMessageType) => void;
+  onStartResearch?: (sessionId: string) => void;
+  onCancelResearch?: (sessionId: string) => void;
+  onExpandResearch?: (sessionId: string) => void;
+  onExportResearchPdf?: (sessionId: string) => void;
+  onRetry?: () => void;
 }
 
-export function MessageList({ messages, virtualOffset = 0, onSaveRequest }: MessageListProps) {
+export function MessageList({
+  messages,
+  virtualOffset = 0,
+  onSaveRequest,
+  onStartResearch,
+  onCancelResearch,
+  onExpandResearch,
+  onExportResearchPdf,
+  onRetry,
+}: MessageListProps) {
   if (messages.length === 0) return null;
 
   return (
@@ -21,7 +35,16 @@ export function MessageList({ messages, virtualOffset = 0, onSaveRequest }: Mess
       style={{ "--virtual-offset": `${virtualOffset}px` } as CSSProperties}
     >
       {messages.map((message) => (
-        <ChatMessage key={message.id} message={message} onSaveRequest={onSaveRequest} />
+        <ChatMessage
+          key={message.id}
+          message={message}
+          onSaveRequest={onSaveRequest}
+          onStartResearch={onStartResearch}
+          onCancelResearch={onCancelResearch}
+          onExpandResearch={onExpandResearch}
+          onExportResearchPdf={onExportResearchPdf}
+          onRetry={onRetry}
+        />
       ))}
     </div>
   );

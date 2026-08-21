@@ -97,15 +97,92 @@ class Settings(BaseSettings):
     AI_MAX_HISTORY_MESSAGES: int = 20
 
     # ------------------------------------------------------------------
+    # Frontend / Invitations
+    # ------------------------------------------------------------------
+    FRONTEND_APP_URL: str = "http://localhost:3000"
+    INVITATION_TOKEN_EXPIRE_DAYS: int = 7
+
+    # ------------------------------------------------------------------
+    # Web Search (Global Internet Access Layer)
+    # ------------------------------------------------------------------
+    WEB_SEARCH_ENABLED: bool = True
+    WEB_SEARCH_PROVIDER: str = "searxng"
+    WEB_SEARCH_DEFAULT_MODE: str = "auto"
+
+    SEARXNG_BASE_URL: str = ""
+    SEARXNG_SEARCH_PATH: str = "/search"
+    SEARXNG_TIMEOUT_SECONDS: int = 10
+    SEARXNG_MAX_RESULTS: int = 8
+    SEARXNG_SAFESEARCH: int = 1
+
+    WEB_SEARCH_RULE_BASED_ENABLED: bool = True
+    WEB_SEARCH_LLM_DECIDER_ENABLED: bool = True
+    WEB_SEARCH_AMBIGUOUS_DECIDER_ENABLED: bool = True
+    WEB_SEARCH_MAX_QUERIES: int = 3
+
+    WEB_SEARCH_RESULT_MAX_SNIPPET_CHARS: int = 500
+    WEB_SEARCH_CONTEXT_MAX_CHARS: int = 6000
+
+    @field_validator("WEB_SEARCH_DEFAULT_MODE")
+    @classmethod
+    def validate_web_search_default_mode(cls, v: str) -> str:
+        allowed = {"auto", "off", "search"}
+        if v not in allowed:
+            raise ValueError(f"WEB_SEARCH_DEFAULT_MODE must be one of {allowed}")
+        return v
+
+    @field_validator("SEARXNG_SAFESEARCH")
+    @classmethod
+    def validate_safesearch(cls, v: int) -> int:
+        if v not in (0, 1, 2):
+            raise ValueError("SEARXNG_SAFESEARCH must be 0, 1, or 2")
+        return v
+
+    # ------------------------------------------------------------------
     # Background Jobs (RQ)
     # ------------------------------------------------------------------
     BACKGROUND_JOBS_ENABLED: bool = True
     RQ_DEFAULT_QUEUE: str = "default"
     RQ_FILE_QUEUE: str = "files"
     RQ_AI_QUEUE: str = "ai"
+    RQ_RESEARCH_QUEUE: str = "research"
     RQ_JOB_TIMEOUT_SECONDS: int = 600
     RQ_JOB_RESULT_TTL_SECONDS: int = 3600
     RQ_JOB_FAILURE_TTL_SECONDS: int = 86400
+
+    # ------------------------------------------------------------------
+    # Deep Research
+    # ------------------------------------------------------------------
+    DEEP_RESEARCH_ENABLED: bool = True
+    DEEP_RESEARCH_DEFAULT_MODE: str = "standard"
+    DEEP_RESEARCH_MAX_SEARCH_QUERIES: int = 4
+    DEEP_RESEARCH_RESULTS_PER_QUERY: int = 8
+    DEEP_RESEARCH_MAX_SELECTED_SOURCES: int = 6
+    DEEP_RESEARCH_FETCH_TIMEOUT_SECONDS: int = 15
+    DEEP_RESEARCH_FETCH_MAX_BYTES: int = 2_000_000
+    DEEP_RESEARCH_MAX_REDIRECTS: int = 3
+    DEEP_RESEARCH_USER_AGENT: str = "MarijoaResearchBot/0.1"
+    DEEP_RESEARCH_MAX_SOURCE_CHARS: int = 30_000
+    DEEP_RESEARCH_CHUNK_SIZE_CHARS: int = 5000
+    DEEP_RESEARCH_CHUNK_OVERLAP_CHARS: int = 800
+    DEEP_RESEARCH_MAX_TOTAL_CHUNKS: int = 120
+    DEEP_RESEARCH_TOP_EVIDENCE_CHUNKS: int = 30
+    DEEP_RESEARCH_EVIDENCE_CONTEXT_MAX_CHARS: int = 50_000
+    DEEP_RESEARCH_REPORT_MAX_OUTPUT_TOKENS: int = 6000
+    DEEP_RESEARCH_REPORT_TEMPERATURE: float = 0.2
+    DEEP_RESEARCH_JOB_TIMEOUT_SECONDS: int = 1800
+
+    # ------------------------------------------------------------------
+    # Embeddings
+    # ------------------------------------------------------------------
+    EMBEDDINGS_ENABLED: bool = True
+    EMBEDDING_BINDING: str = "azure_openai"
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_HOST: str = "https://cynerza-2026.openai.azure.com/openai/v1"
+    EMBEDDING_API_KEY: str = "PASTE_YOUR_EMBEDDING_API_KEY_HERE"
+    EMBEDDING_DIMENSIONS: int = 1536
+    EMBEDDING_BATCH_SIZE: int = 64
+    EMBEDDING_TIMEOUT_SECONDS: int = 30
 
     # ------------------------------------------------------------------
     # Validators
@@ -127,6 +204,17 @@ class Settings(BaseSettings):
         allowed = {"development", "staging", "production", "test"}
         if v not in allowed:
             raise ValueError(f"APP_ENV must be one of {allowed}")
+        return v
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def normalize_debug(cls, v: object) -> object:
+        if isinstance(v, str):
+            cleaned = v.strip().lower()
+            if cleaned in {"release", "prod", "production"}:
+                return False
+            if cleaned in {"debug", "dev", "development"}:
+                return True
         return v
 
     @model_validator(mode="after")
@@ -173,6 +261,20 @@ class Settings(BaseSettings):
             except json.JSONDecodeError:
                 pass
         return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+    @property
+    def cors_origin_regex(self) -> str | None:
+        """Allow browser dev servers on localhost/private LAN in development only."""
+        if self.APP_ENV != "development":
+            return None
+        return (
+            r"^https?://("
+            r"localhost|127\.0\.0\.1|0\.0\.0\.0|"
+            r"192\.168\.\d{1,3}\.\d{1,3}|"
+            r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+            r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+            r")(:\d+)?$"
+        )
 
 
 @lru_cache

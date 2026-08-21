@@ -18,7 +18,9 @@ import styles from "@/components/chat/chat-ui.module.css";
 import { ArrowDownIcon, MarijoaMark, MenuIcon, PanelRightIcon, ShareIcon } from "@/components/chat/icons";
 import { InputBar } from "@/components/chat/InputBar";
 import { MessageList } from "@/components/chat/MessageList";
+import { ResearchCanvas } from "@/components/deep-research/ResearchCanvas";
 import { SaveAsArtifactModal } from "@/components/artifacts/SaveAsArtifactModal";
+import type { DeepResearchCardState } from "@/types/deep-research";
 
 const ESTIMATED_MESSAGE_HEIGHT = 132;
 const VIRTUAL_OVERSCAN = 6;
@@ -60,12 +62,46 @@ interface ChatAreaProps {
   rightPanelOpen?: boolean;
   onToggleRightPanel?: () => void;
   onSaveAsArtifact?: (title: string, type: ArtifactType, content: string) => void;
+  webSearchEnabled?: boolean;
+  onWebSearchToggle?: (next: boolean) => void;
+  deepResearchEnabled?: boolean;
+  onDeepResearchToggle?: (next: boolean) => void;
+  onStartResearch?: (sessionId: string) => void;
+  onCancelResearch?: (sessionId: string) => void;
+  onExpandResearch?: (sessionId: string) => void;
+  onCloseResearchCanvas?: () => void;
+  onExportResearchPdf?: (sessionId: string) => void;
+  expandedResearch?: DeepResearchCardState | null;
+  /** Called when the user clicks "Try again" on a failed assistant message. */
+  onRetry?: () => void;
 }
 
-const suggestions = [
-  "Draft a concise project update",
-  "Explain this code path",
-  "Brainstorm product names",
+interface PromptSuggestion {
+  label: string;
+  prompt: string;
+}
+
+const suggestions: PromptSuggestion[] = [
+  {
+    label: "Draft a concise project update",
+    prompt:
+      "Draft a concise, professional project update for a team or client. Include a short summary, completed work, current progress, blockers, and next steps. If exact details are missing, create a realistic generic version instead of filling the answer with placeholders.",
+  },
+  {
+    label: "Explain this code path",
+    prompt:
+      "Explain this code path in simple, practical terms. Start with a short overview, then describe the flow step by step, and end with possible risks or things to check.",
+  },
+  {
+    label: "Brainstorm product names",
+    prompt:
+      "Brainstorm strong product names with short reasoning. Group them by style — premium, technical, friendly, and enterprise. Keep the list practical and brandable.",
+  },
+  {
+    label: "Compare two options",
+    prompt:
+      "Compare the two options I describe and recommend the best one. Use a structured comparison and end with a clear recommendation.",
+  },
 ];
 
 export function ChatArea({
@@ -79,12 +115,30 @@ export function ChatArea({
   rightPanelOpen = false,
   onToggleRightPanel,
   onSaveAsArtifact,
+  webSearchEnabled,
+  onWebSearchToggle,
+  deepResearchEnabled = false,
+  onDeepResearchToggle,
+  onStartResearch,
+  onCancelResearch,
+  onExpandResearch,
+  onCloseResearchCanvas,
+  onExportResearchPdf,
+  expandedResearch,
+  onRetry,
 }: ChatAreaProps) {
   const [saveMessage, setSaveMessage] = useState<ChatMessageType | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFab, setShowFab] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  // True when the user is parked near the bottom — keep auto-scrolling.
+  // False when they have scrolled up to read — leave them alone so streaming
+  // never yanks them away from the content they're reading.
+  const stickToBottomRef = useRef(true);
+  // Throttle auto-scroll to one call per frame so streaming tokens cannot
+  // schedule dozens of scrolls per second.
+  const scrollFrameRef = useRef<number | null>(null);
   const hasMessages = messages.length > 0;
   const shouldVirtualize = messages.length > 50;
 
@@ -98,16 +152,41 @@ export function ChatArea({
     }
   }, []);
 
+  const requestScrollToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      if (scrollFrameRef.current !== null) return;
+      const schedule =
+        typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame
+          : (cb: FrameRequestCallback) => window.setTimeout(() => cb(0), 16);
+      scrollFrameRef.current = schedule(() => {
+        scrollFrameRef.current = null;
+        scrollToBottom(behavior);
+      }) as unknown as number;
+    },
+    [scrollToBottom]
+  );
+
   const latestMessageContent = messages[messages.length - 1]?.content;
 
   useEffect(() => {
-    scrollToBottom("smooth");
-  }, [latestMessageContent, messages.length, scrollToBottom]);
+    if (!stickToBottomRef.current) return;
+    requestScrollToBottom("smooth");
+  }, [latestMessageContent, messages.length, requestScrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 80;
     setShowFab(distanceFromBottom > 200);
     setScrollTop(el.scrollTop);
     setViewportHeight(el.clientHeight);
@@ -173,6 +252,11 @@ export function ChatArea({
                   <MessageList
                     messages={virtualState.rendered}
                     onSaveRequest={onSaveAsArtifact ? setSaveMessage : undefined}
+                    onStartResearch={onStartResearch}
+                    onCancelResearch={onCancelResearch}
+                    onExpandResearch={onExpandResearch}
+                    onExportResearchPdf={onExportResearchPdf}
+                    onRetry={onRetry}
                   />
                 </div>
               </div>
@@ -180,6 +264,11 @@ export function ChatArea({
               <MessageList
                 messages={virtualState.rendered}
                 onSaveRequest={onSaveAsArtifact ? setSaveMessage : undefined}
+                onStartResearch={onStartResearch}
+                onCancelResearch={onCancelResearch}
+                onExpandResearch={onExpandResearch}
+                onExportResearchPdf={onExportResearchPdf}
+                onRetry={onRetry}
               />
             )}
           </MessageErrorBoundary>
@@ -193,16 +282,26 @@ export function ChatArea({
               <div className={styles.suggestions} aria-label="Suggested prompts">
                 {suggestions.map((suggestion) => (
                   <button
-                    key={suggestion}
+                    key={suggestion.label}
                     type="button"
                     className={styles.suggestionChip}
-                    onClick={() => sendSuggestion(suggestion)}
+                    onClick={() => sendSuggestion(suggestion.prompt)}
+                    title={suggestion.label}
                   >
-                    {suggestion}
+                    {suggestion.label}
                   </button>
                 ))}
               </div>
-              <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
+              <InputBar
+                onSend={onSend}
+                onAttach={onAttach}
+                autoFocus
+                webSearchEnabled={webSearchEnabled}
+                onWebSearchToggle={onWebSearchToggle}
+                deepResearchEnabled={deepResearchEnabled}
+                onDeepResearchToggle={onDeepResearchToggle}
+                placeholder={deepResearchEnabled ? "Get a detailed report..." : undefined}
+              />
             </div>
           </div>
         )}
@@ -210,13 +309,30 @@ export function ChatArea({
 
       {hasMessages && (
         <div className={styles.inputDock}>
-          <InputBar onSend={onSend} onAttach={onAttach} autoFocus />
+          <InputBar
+            onSend={onSend}
+            onAttach={onAttach}
+            autoFocus
+            webSearchEnabled={webSearchEnabled}
+            onWebSearchToggle={onWebSearchToggle}
+            deepResearchEnabled={deepResearchEnabled}
+            onDeepResearchToggle={onDeepResearchToggle}
+            placeholder={deepResearchEnabled ? "Get a detailed report..." : undefined}
+          />
           <p className={styles.disclaimer}>{DISCLAIMER_TEXT}</p>
         </div>
       )}
 
       {showFab && (
-        <button type="button" className={styles.fab} aria-label="Scroll to bottom" onClick={() => scrollToBottom("smooth")}>
+        <button
+          type="button"
+          className={styles.fab}
+          aria-label="Scroll to bottom"
+          onClick={() => {
+            stickToBottomRef.current = true;
+            scrollToBottom("smooth");
+          }}
+        >
           <ArrowDownIcon />
         </button>
       )}
@@ -229,6 +345,14 @@ export function ChatArea({
             setSaveMessage(null);
           }}
           onCancel={() => setSaveMessage(null)}
+        />
+      )}
+
+      {expandedResearch && onCloseResearchCanvas && onExportResearchPdf && (
+        <ResearchCanvas
+          research={expandedResearch}
+          onClose={onCloseResearchCanvas}
+          onExportPdf={onExportResearchPdf}
         />
       )}
     </section>

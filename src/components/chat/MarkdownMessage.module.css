@@ -1,0 +1,192 @@
+/* Marijoa Response Presentation Layer — typography for assistant markdown. */
+
+.root {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.root > *:first-child {
+  margin-top: 0;
+}
+
+.root > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Headings ─────────────────────────────────────────────── */
+
+.h1,
+.h2,
+.h3 {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 18px 0 8px;
+}
+
+.h1 {
+  font-size: 1.4em;
+  letter-spacing: -0.01em;
+}
+
+.h2 {
+  font-size: 1.22em;
+  letter-spacing: -0.005em;
+}
+
+.h3 {
+  font-size: 1.08em;
+}
+
+/* ── Paragraphs ───────────────────────────────────────────── */
+
+.paragraph {
+  margin: 0 0 10px;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Lists ────────────────────────────────────────────────── */
+
+.ul,
+.ol {
+  margin: 6px 0 10px;
+  padding-left: 1.4em;
+}
+
+.li {
+  margin: 2px 0;
+  line-height: 1.6;
+}
+
+.li > .ul,
+.li > .ol {
+  margin: 4px 0 4px;
+}
+
+/* ── Inline code (pill) ───────────────────────────────────── */
+
+.inlineCode {
+  border-radius: 5px;
+  background: var(--color-input-bg, #f4f4f5);
+  color: #262626;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border, #e5e5e5);
+}
+
+/* ── Fenced code blocks ───────────────────────────────────── */
+
+.codeBlock {
+  overflow-x: auto;
+  border: 1px solid var(--color-border, #e5e5e5);
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 10px 0;
+  padding: 12px 14px;
+}
+
+.codeFenced {
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  border: 0;
+}
+
+/* ── Tables ───────────────────────────────────────────────── */
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 12px 0;
+  border: 1px solid var(--color-border, #e5e5e5);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94em;
+}
+
+.thead {
+  background: var(--color-sidebar-bg, #f7f7f8);
+}
+
+.tr {
+  border-top: 1px solid var(--color-border, #e5e5e5);
+}
+
+.thead .tr:first-child {
+  border-top: 0;
+}
+
+.th,
+.td {
+  text-align: left;
+  padding: 8px 12px;
+  vertical-align: top;
+}
+
+.th {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border, #e5e5e5);
+}
+
+.td {
+  color: var(--color-text-primary);
+}
+
+/* ── Blockquote (soft callout) ────────────────────────────── */
+
+.blockquote {
+  margin: 12px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--color-accent, #1a1a1a);
+  background: var(--color-user-bubble, #f0f0f0);
+  color: var(--color-text-secondary, #6b6b6b);
+  border-radius: 0 8px 8px 0;
+}
+
+.blockquote > .paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Horizontal rule ──────────────────────────────────────── */
+
+.hr {
+  border: 0;
+  border-top: 1px solid var(--color-border, #e5e5e5);
+  margin: 18px 0;
+}
+
+/* ── Links ────────────────────────────────────────────────── */
+
+.link {
+  color: var(--color-accent, #1a1a1a);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.unsafeLink {
+  color: var(--color-text-secondary, #6b6b6b);
+}

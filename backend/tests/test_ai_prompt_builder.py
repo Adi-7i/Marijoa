@@ -10,6 +10,9 @@ from dataclasses import dataclass
 import pytest
 
 from app.modules.ai_gateway.prompt_builder import build_provider_messages
+from app.modules.ai_gateway.response_presentation import (
+    GLOBAL_RESPONSE_PRESENTATION_POLICY,
+)
 from app.modules.ai_gateway.schemas import ProviderMessage
 
 
@@ -34,37 +37,41 @@ def test_system_instruction_included_as_first_message() -> None:
     )
     assert len(messages) >= 1
     assert messages[0].role == "developer"
-    assert messages[0].content == "Be helpful."
+    # The MRPL global policy is always prepended, with the workspace
+    # instruction appended in its own section.
+    assert "Be helpful." in messages[0].content
+    assert "Marijoa AI" in messages[0].content
 
 
-def test_system_instruction_omitted_when_none() -> None:
+def test_global_policy_present_even_when_system_instruction_is_none() -> None:
+    """The MRPL policy is always sent as the developer message."""
     messages = build_provider_messages(
         system_instruction=None,
         history=[],
         current_content="Hello",
     )
-    for msg in messages:
-        assert msg.role != "developer"
+    assert messages[0].role == "developer"
+    assert "Marijoa AI" in messages[0].content
 
 
-def test_system_instruction_omitted_when_empty_string() -> None:
+def test_global_policy_present_when_system_instruction_is_empty() -> None:
     messages = build_provider_messages(
         system_instruction="",
         history=[],
         current_content="Hello",
     )
-    for msg in messages:
-        assert msg.role != "developer"
+    assert messages[0].role == "developer"
+    assert GLOBAL_RESPONSE_PRESENTATION_POLICY.strip() in messages[0].content
 
 
-def test_system_instruction_omitted_when_whitespace_only() -> None:
+def test_global_policy_present_when_system_instruction_is_whitespace() -> None:
     messages = build_provider_messages(
         system_instruction="   \n\t  ",
         history=[],
         current_content="Hello",
     )
-    for msg in messages:
-        assert msg.role != "developer"
+    assert messages[0].role == "developer"
+    assert GLOBAL_RESPONSE_PRESENTATION_POLICY.strip() in messages[0].content
 
 
 def test_system_instruction_stripped_before_use() -> None:
@@ -74,7 +81,10 @@ def test_system_instruction_stripped_before_use() -> None:
         current_content="Ping",
     )
     assert messages[0].role == "developer"
-    assert messages[0].content == "Be concise."
+    # Workspace instruction text is trimmed and appears verbatim alongside
+    # the global policy.
+    assert "Be concise." in messages[0].content
+    assert "  Be concise.  " not in messages[0].content
 
 
 # ---------------------------------------------------------------------------
@@ -93,11 +103,13 @@ def test_message_order_preserved_chronologically() -> None:
         history=history,  # type: ignore[arg-type]
         current_content="fourth",
     )
-    # Expect: first, second, third (history), fourth (current, not duplicated)
+    # Expect: developer policy, first, second, third (history), fourth (current)
     contents = [m.content for m in messages]
     assert contents.index("first") < contents.index("second")
     assert contents.index("second") < contents.index("third")
     assert contents.index("third") < contents.index("fourth")
+    # The developer policy always precedes conversation messages.
+    assert messages[0].role == "developer"
 
 
 def test_message_order_with_system_instruction() -> None:
@@ -129,7 +141,13 @@ def test_max_history_limits_older_messages() -> None:
         current_content="new",
         max_history=3,
     )
-    history_contents = [m.content for m in messages if m.content != "new"]
+    # Filter to only the conversation history messages (exclude the developer
+    # policy message and the current "new" turn).
+    history_contents = [
+        m.content
+        for m in messages
+        if m.role != "developer" and m.content != "new"
+    ]
     assert len(history_contents) == 3
     # Should be the last 3: msg7, msg8, msg9
     assert "msg7" in history_contents
@@ -183,9 +201,11 @@ def test_empty_history_works() -> None:
         history=[],
         current_content="Hello!",
     )
-    assert len(messages) == 1
-    assert messages[0].role == "user"
-    assert messages[0].content == "Hello!"
+    # MRPL adds the global policy developer message, then the user turn.
+    assert len(messages) == 2
+    assert messages[0].role == "developer"
+    assert messages[1].role == "user"
+    assert messages[1].content == "Hello!"
 
 
 def test_empty_history_with_system_instruction() -> None:
@@ -196,6 +216,7 @@ def test_empty_history_with_system_instruction() -> None:
     )
     assert len(messages) == 2
     assert messages[0].role == "developer"
+    assert "Be helpful." in messages[0].content
     assert messages[1].role == "user"
     assert messages[1].content == "Hi"
 

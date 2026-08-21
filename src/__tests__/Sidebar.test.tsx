@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { clearTokens } from "@/lib/auth/token-store";
@@ -46,6 +47,22 @@ describe("Sidebar", () => {
     renderSidebar(<Sidebar user={MOCK_USER} chats={personalChats} />);
     expect(screen.getByText("Current Affairs Today")).toBeInTheDocument();
     expect(screen.getByText("Universe Observer Questions")).toBeInTheDocument();
+  });
+
+  it("selects a chat history item with the correct chat id", async () => {
+    const onChatSelect = vi.fn();
+    renderSidebar(
+      <Sidebar
+        user={MOCK_USER}
+        chats={personalChats}
+        selectedChatId={personalChats[0]?.id}
+        onChatSelect={onChatSelect}
+      />
+    );
+
+    await userEvent.click(screen.getByText(personalChats[1]!.title));
+
+    expect(onChatSelect).toHaveBeenCalledWith(personalChats[1]!.id);
   });
 
   it("renders user name from props", () => {

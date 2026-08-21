@@ -15,14 +15,22 @@ import type {
   AuditLog,
   AuditAction,
   Chat,
+  CitationSource,
   FileItem,
   FileStatus,
+  InvitableRole,
+  InvitationAcceptResult,
+  InvitationStatus,
+  InvitationValidation,
   Message,
   Organization,
+  OrganizationInvitation,
+  OrganizationInvitationWithUrl,
   OrganizationMember,
   OrganizationRole,
   OrganizationType,
   User,
+  WebMode,
   Workspace,
   WorkspaceContext,
   AdminUsageSummary,
@@ -39,6 +47,10 @@ import type {
   ChatRead,
   FileRead,
   FileStatusApi,
+  InvitationAcceptResponse,
+  InvitationCreateResponse,
+  InvitationRead,
+  InvitationValidateResponse,
   MessageRead,
   OrganizationMemberRead,
   OrganizationRead,
@@ -154,6 +166,85 @@ export function adaptOrganizationMember(raw: OrganizationMemberRead): Organizati
   };
 }
 
+// --- invitations ------------------------------------------------------------
+
+const VALID_INVITATION_STATUS: ReadonlySet<InvitationStatus> = new Set([
+  "PENDING_SIGNUP",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+  "EXPIRED",
+  "CANCELLED",
+]);
+
+function normalizeInvitationStatus(status: string): InvitationStatus {
+  return VALID_INVITATION_STATUS.has(status as InvitationStatus)
+    ? (status as InvitationStatus)
+    : "PENDING_SIGNUP";
+}
+
+const VALID_INVITABLE_ROLE: ReadonlySet<InvitableRole> = new Set([
+  "ADMIN",
+  "MANAGER",
+  "MEMBER",
+  "VIEWER",
+]);
+
+function normalizeInvitableRole(role: string): InvitableRole {
+  return VALID_INVITABLE_ROLE.has(role as InvitableRole)
+    ? (role as InvitableRole)
+    : "MEMBER";
+}
+
+export function adaptInvitation(raw: InvitationRead): OrganizationInvitation {
+  return {
+    id: raw.id,
+    organizationId: raw.organization_id,
+    email: raw.email,
+    role: normalizeInvitableRole(raw.role),
+    status: normalizeInvitationStatus(raw.status),
+    invitedBy: raw.invited_by,
+    acceptedUserId: raw.accepted_user_id ?? undefined,
+    expiresAt: isoToMs(raw.expires_at),
+    createdAt: isoToMs(raw.created_at),
+    acceptedAt: raw.accepted_at ? isoToMs(raw.accepted_at) : undefined,
+    approvedAt: raw.approved_at ? isoToMs(raw.approved_at) : undefined,
+    rejectedAt: raw.rejected_at ? isoToMs(raw.rejected_at) : undefined,
+  };
+}
+
+export function adaptInvitationCreate(
+  raw: InvitationCreateResponse
+): OrganizationInvitationWithUrl {
+  return {
+    ...adaptInvitation(raw),
+    inviteUrl: raw.invite_url,
+  };
+}
+
+export function adaptInvitationValidate(
+  raw: InvitationValidateResponse
+): InvitationValidation {
+  return {
+    valid: raw.valid,
+    organizationName: raw.organization_name,
+    email: raw.email,
+    role: normalizeInvitableRole(raw.role),
+    status: normalizeInvitationStatus(raw.status),
+    expiresAt: isoToMs(raw.expires_at),
+  };
+}
+
+export function adaptInvitationAccept(
+  raw: InvitationAcceptResponse
+): InvitationAcceptResult {
+  return {
+    status: normalizeInvitationStatus(raw.status),
+    organizationName: raw.organization_name,
+    message: raw.message,
+  };
+}
+
 // --- workspaces -------------------------------------------------------------
 
 export function adaptWorkspace(
@@ -213,13 +304,68 @@ function normalizeMessageRole(role: string): MessageRole {
   return VALID_MESSAGE_ROLE.has(role as MessageRole) ? (role as MessageRole) : "user";
 }
 
+const VALID_WEB_MODES: ReadonlySet<WebMode> = new Set(["auto", "off", "search"]);
+
+function normalizeWebMode(value: unknown): WebMode | undefined {
+  return typeof value === "string" && VALID_WEB_MODES.has(value as WebMode)
+    ? (value as WebMode)
+    : undefined;
+}
+
+export function adaptCitationSource(raw: unknown): CitationSource | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const index = typeof r.index === "number" ? r.index : Number(r.index);
+  const title = typeof r.title === "string" ? r.title : "";
+  const url = typeof r.url === "string" ? r.url : "";
+  if (!Number.isFinite(index) || !title || !url) return null;
+  return {
+    index,
+    title,
+    url,
+    snippet: typeof r.snippet === "string" ? r.snippet : undefined,
+    domain: typeof r.domain === "string" ? r.domain : undefined,
+  };
+}
+
+function extractSources(metadata: Record<string, unknown> | null): CitationSource[] | undefined {
+  if (!metadata) return undefined;
+  const raw = metadata.sources;
+  if (!Array.isArray(raw)) return undefined;
+  const sources = raw
+    .map(adaptCitationSource)
+    .filter((s): s is CitationSource => s !== null);
+  return sources.length > 0 ? sources : undefined;
+}
+
+function extractSearchQueries(metadata: Record<string, unknown> | null): string[] | undefined {
+  if (!metadata) return undefined;
+  const raw = metadata.search_queries;
+  if (!Array.isArray(raw)) return undefined;
+  const queries = raw.filter((q): q is string => typeof q === "string" && q.length > 0);
+  return queries.length > 0 ? queries : undefined;
+}
+
 export function adaptMessage(raw: MessageRead): Message {
+  const metadata = raw.metadata_json ?? null;
+  const sources = extractSources(metadata);
+  const webSearchUsed =
+    metadata && typeof metadata.web_search_used === "boolean"
+      ? (metadata.web_search_used as boolean)
+      : undefined;
+  const webMode = metadata ? normalizeWebMode(metadata.web_mode) : undefined;
+  const searchQueries = extractSearchQueries(metadata);
+
   return {
     id: raw.id,
     chatId: raw.chat_id,
     role: normalizeMessageRole(raw.role),
     content: raw.content,
     timestamp: isoToMsRequired(raw.created_at),
+    sources,
+    webSearchUsed,
+    webMode,
+    searchQueries,
   };
 }
 

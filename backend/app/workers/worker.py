@@ -39,6 +39,7 @@ def main(queue_names: list[str] | None = None) -> None:
         settings.RQ_DEFAULT_QUEUE,
         settings.RQ_FILE_QUEUE,
         settings.RQ_AI_QUEUE,
+        settings.RQ_RESEARCH_QUEUE,
     ]
 
     # Log queue names — never log the Redis URL

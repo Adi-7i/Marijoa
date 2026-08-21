@@ -9,9 +9,11 @@ import { UsageSummaryCards } from "./UsageSummaryCards";
 import { AdminUsersTable } from "./AdminUsersTable";
 import { AuditLogsTable } from "./AuditLogsTable";
 import { AdminSettingsPlaceholder } from "./AdminSettingsPlaceholder";
+import { InvitationsTable } from "./InvitationsTable";
 import {
   ActivityIcon,
   SettingsIcon,
+  UserPlusIcon,
   UsersIcon,
   BarChartIcon,
 } from "@/components/chat/icons";
@@ -20,27 +22,31 @@ import {
   useAdminUsage,
   useAdminUsers,
 } from "@/hooks/useAdminData";
+import { useOrganizationInvitations } from "@/hooks/useInvitations";
 import styles from "./admin.module.css";
 
-type AdminTab = "overview" | "users" | "audit" | "settings";
+type AdminTab = "overview" | "users" | "invitations" | "audit" | "settings";
 
 const TABS: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
-  { id: "overview", label: "Overview",   icon: <BarChartIcon size={14} /> },
-  { id: "users",    label: "Users",      icon: <UsersIcon size={14} /> },
-  { id: "audit",    label: "Audit Logs", icon: <ActivityIcon size={14} /> },
-  { id: "settings", label: "Settings",   icon: <SettingsIcon size={14} /> },
+  { id: "overview",    label: "Overview",          icon: <BarChartIcon size={14} /> },
+  { id: "users",       label: "Users",             icon: <UsersIcon size={14} /> },
+  { id: "invitations", label: "Invitations",       icon: <UserPlusIcon size={14} /> },
+  { id: "audit",       label: "Audit Logs",        icon: <ActivityIcon size={14} /> },
+  { id: "settings",    label: "Settings",          icon: <SettingsIcon size={14} /> },
 ];
 
 interface AdminDashboardProps {
   organizationId: string;
   org: Organization;
   currentUserRole: OrganizationRole;
+  onMembersChanged?: () => void;
 }
 
 export function AdminDashboard({
   organizationId,
   org,
   currentUserRole,
+  onMembersChanged,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
@@ -48,6 +54,7 @@ export function AdminDashboard({
   const usage = useAdminUsage(organizationId, enabled);
   const users = useAdminUsers(organizationId, enabled);
   const audit = useAdminAuditLogs(organizationId, enabled);
+  const invitations = useOrganizationInvitations(organizationId, enabled);
 
   const initials = org.name
     .split(" ")
@@ -59,7 +66,8 @@ export function AdminDashboard({
   const adminAccessDenied =
     usage.errorStatus === 403 ||
     users.errorStatus === 403 ||
-    audit.errorStatus === 403;
+    audit.errorStatus === 403 ||
+    invitations.errorStatus === 403;
 
   return (
     <main className={styles.dashboard} aria-label="Admin dashboard">
@@ -123,7 +131,31 @@ export function AdminDashboard({
                 error={users.error}
                 onRetry={() => void users.refresh()}
               >
-                <AdminUsersTable members={users.data ?? []} />
+                <AdminUsersTable
+                  members={users.data ?? []}
+                  organizationId={organizationId}
+                  onInviteCreated={() => {
+                    void invitations.refresh();
+                  }}
+                />
+              </AdminTabContent>
+            )}
+
+            {activeTab === "invitations" && (
+              <AdminTabContent
+                isLoading={invitations.isLoading && (invitations.data ?? []).length === 0}
+                error={invitations.error}
+                onRetry={() => void invitations.refresh()}
+              >
+                <InvitationsTable
+                  organizationId={organizationId}
+                  invitations={invitations.data ?? []}
+                  onChanged={() => {
+                    void invitations.refresh();
+                    void users.refresh();
+                    onMembersChanged?.();
+                  }}
+                />
               </AdminTabContent>
             )}
 

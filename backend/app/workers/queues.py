@@ -48,10 +48,15 @@ def get_queue(name: str) -> "Queue | None":
         return None
     if not _RQ_AVAILABLE:
         return None
+    timeout = (
+        settings.DEEP_RESEARCH_JOB_TIMEOUT_SECONDS
+        if name == settings.RQ_RESEARCH_QUEUE
+        else settings.RQ_JOB_TIMEOUT_SECONDS
+    )
     return Queue(
         name,
         connection=conn,
-        default_timeout=settings.RQ_JOB_TIMEOUT_SECONDS,
+        default_timeout=timeout,
         result_ttl=settings.RQ_JOB_RESULT_TTL_SECONDS,
         failure_ttl=settings.RQ_JOB_FAILURE_TTL_SECONDS,
     )
@@ -67,3 +72,7 @@ def get_file_queue() -> "Queue | None":
 
 def get_ai_queue() -> "Queue | None":
     return get_queue(get_settings().RQ_AI_QUEUE)
+
+
+def get_research_queue() -> "Queue | None":
+    return get_queue(get_settings().RQ_RESEARCH_QUEUE)
